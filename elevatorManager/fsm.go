@@ -1,6 +1,6 @@
 //INCLUDE TODO INCLUDE TODO INCLUDE
 
-#include "elevator_io.go"
+import "elevator_io.go"
 //!!!!!!!!!!!!!!!!!
 //Make when ready
 //static Elevator
@@ -8,8 +8,13 @@
 
 func setAllLights(Elevator es) {
 	for (floor := 0; floor < N_FLOORS; floor++) {
-		for (btn := 0; btn < N_BUTTONS; btn++) {
-			
+		for (btn := elevio.ButtonType(0); btn < 3; btn++) {
+			elevio.SetButtonLamp(b, f, false)
+			es.cur
 		}
 	}
+}
+
+func fsm_onInitBetweenFloor() {
+
 }
