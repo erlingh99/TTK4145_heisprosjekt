@@ -35,6 +35,19 @@ type ButtonEvent struct {
 	Button ButtonType
 }
 
+type ElevatorStatus int
+const (
+	idle ElevatorStatus = 1
+	Obstructed = 0
+	Driving = -1
+)
+
+type Elevator struct {
+	curFloor int
+	status ElevatorStatus
+	dirn MotorDirection
+}
+
 func Init(addr string, numFloors int) {
 	if _initialized {
 		fmt.Println("Driver already initialized!")
