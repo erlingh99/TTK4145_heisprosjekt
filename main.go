@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	// "time"
-	"./config"
+	"elevatorproject/config"
 	// "./network/tcp"
-	"./Networking"
+	"elevatorproject/Networking"
 	// "./test"
 )
 

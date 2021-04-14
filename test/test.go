@@ -1,7 +1,7 @@
 package test
 
 import (
-	"../Networking"
+	"elevatorproject/Networking"
 )
 
 func Test() {
