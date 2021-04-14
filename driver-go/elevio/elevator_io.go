@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 	"time"
+	"../config"
 )
 
 const _pollRate = 20 * time.Millisecond
@@ -43,7 +44,8 @@ const (
 )
 
 type Elevator struct {
-	curFloor int
+	floor int
+	var request [N_FLOORS][N_BUTTONS]
 	status ElevatorStatus
 	dirn MotorDirection
 }
