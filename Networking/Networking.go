@@ -19,6 +19,8 @@ var sendIntErrChannels = list.New()
 var recvIntChannels = list.New()
 var recvIntErrChannels = list.New()
 
+var MasterAddress net.Addr
+
 func Init() {
 	// go SpamChannel(sendNumChan)
 	fmt.Println("Init Networking")
@@ -87,6 +89,7 @@ func ListenForBroadcastedIP(port int) {
 		// Short way:
 		addrString := addr.(*net.UDPAddr).IP.String()
 		fmt.Println("Recieved broadcast:", addrString)
+		MasterAddress = addr
 	}
 }
 
