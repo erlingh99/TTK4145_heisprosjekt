@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-
+	"./config"
 	"./network/tcp"
 )
 
 func main() {
-	testChannel := make(chan int)
-	errorChannel := make(chan error)
+	fmt.Println("Number of floors:", config.N_FLOORS);
 	fmt.Println("yo")
 	// IMPORTANT NOTE on how to use:
 	// You can only send messages from master to slave and not from slave to master
