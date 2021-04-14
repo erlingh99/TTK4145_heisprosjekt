@@ -71,8 +71,8 @@ func Receiver(port int, chans ...interface{}) {
 	}
 }
 
-func AddressReceiver(port int, chans ...interface{}) {
-	checkArgs(chans...)
+func AddressReceiver(port int, channel chan net.Addr) {
+	checkArgs(channel)
 
 	var buf [1024]byte
 	conn := conn.DialBroadcastUDP(port)
@@ -84,13 +84,7 @@ func AddressReceiver(port int, chans ...interface{}) {
 			//return
 		}
 
-		for _, ch := range chans {
-			reflect.Select([]reflect.SelectCase{{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(ch),
-				Send: reflect.ValueOf(addr.String()),
-			}})
-		}
+		channel <- addr
 	}
 }
 

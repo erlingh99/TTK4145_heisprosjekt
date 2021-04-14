@@ -71,16 +71,22 @@ func BroadcastMyIp(port int) {
 	go bcast.Transmitter(port, channel)
 	for {
 		time.Sleep(time.Second)
-		channel <- "ip goes here"
+		channel <- "I am your master"
 	}
 }
 
 func ListenForBroadcastedIP(port int) {
-	channel := make(chan string)
+	channel := make(chan net.Addr)
 	go bcast.AddressReceiver(port, channel)
 	for {
-		addr, _ := net.ResolveTCPAddr("tcp", <-channel)
-		fmt.Println("Recieved broadcast:", addr.IP.String())
+		addr := <-channel
+		// Long way:
+		// tcpAddr, _ := net.ResolveTCPAddr("tcp", addr.String())
+		// addrString := tcpAddr.IP.String()
+
+		// Short way:
+		addrString := addr.(*net.UDPAddr).IP.String()
+		fmt.Println("Recieved broadcast:", addrString)
 	}
 }
 
