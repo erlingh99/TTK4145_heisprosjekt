@@ -1,3 +1,5 @@
+package elevatorManager
+
 import "../elevio/elevator_io.go"
 import "time"
 
