@@ -76,9 +76,10 @@ func BroadcastMyIp(port int) {
 
 func ListenForBroadcastedIP(port int) {
 	channel := make(chan string)
-	go bcast.Receiver(port, channel)
+	go bcast.AddressReceiver(port, channel)
 	for {
-		fmt.Println("Recieved broadcast:", <-channel)
+		addr, _ := net.ResolveTCPAddr("tcp", <-channel)
+		fmt.Println("Recieved broadcast:", addr.IP.String())
 	}
 }
 

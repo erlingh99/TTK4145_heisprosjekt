@@ -71,6 +71,29 @@ func Receiver(port int, chans ...interface{}) {
 	}
 }
 
+func AddressReceiver(port int, chans ...interface{}) {
+	checkArgs(chans...)
+
+	var buf [1024]byte
+	conn := conn.DialBroadcastUDP(port)
+	for {
+		_, addr, e := conn.ReadFrom(buf[0:])
+
+		if e != nil {
+			fmt.Printf("bcast.AddressReceiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
+			//return
+		}
+
+		for _, ch := range chans {
+			reflect.Select([]reflect.SelectCase{{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(ch),
+				Send: reflect.ValueOf(addr.String()),
+			}})
+		}
+	}
+}
+
 // Checks that args to Tx'er/Rx'er are valid:
 //  All args must be channels
 //  Element types of channels must be encodable with JSON
