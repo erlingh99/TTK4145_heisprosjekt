@@ -67,7 +67,7 @@ func CreateRecvIntChannel(addr string, port int) {
 
 func BroadcastMyIp(port int) {
 	channel := make(chan string)
-	bcast.Transmitter(port, channel)
+	go bcast.Transmitter(port, channel)
 	for {
 		time.Sleep(time.Second)
 		channel <- "ip goes here"
@@ -76,7 +76,7 @@ func BroadcastMyIp(port int) {
 
 func ListenForBroadcastedIP(port int) {
 	channel := make(chan string)
-	bcast.Receiver(port, channel)
+	go bcast.Receiver(port, channel)
 	for {
 		fmt.Println("Recieved broadcast:", <-channel)
 	}
