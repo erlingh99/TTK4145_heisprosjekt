@@ -47,6 +47,50 @@ func Slave(ip string, port int, errorChan chan<- error, chans ...interface{}) {
 	}
 }
 
+// Encodes received values from `chans` into type-tagged JSON, then transmits them
+// to `ip` on `port`
+func Transmitter(ip string, port int, errorChan chan<- error, chans ...interface{}) {
+	checkArgs(chans...)
+
+	addr := fmt.Sprintf("%s:%d", ip, port)
+	conn, err := net.Dial("tcp4", addr)
+
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	n := 0
+	for range chans {
+		n++
+	}
+
+	for {
+		go func() {
+			selectCases := make([]reflect.SelectCase, n)
+			typeNames := make([]string, n)
+			for i, ch := range chans {
+				selectCases[i] = reflect.SelectCase{
+					Dir:  reflect.SelectRecv,
+					Chan: reflect.ValueOf(ch),
+				}
+				typeNames[i] = reflect.TypeOf(ch).Elem().String()
+			}
+
+			for {
+				chosen, value, _ := reflect.Select(selectCases)
+				buf, _ := json.Marshal(value.Interface())
+
+				_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
+
+				if err != nil {
+					errorChan <- err
+					return
+				}
+			}
+		}()
+	}
+}
+
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
 func Master(port int, errorChan chan<- error, chans ...interface{}) {
@@ -90,6 +134,48 @@ func Master(port int, errorChan chan<- error, chans ...interface{}) {
 				}
 			}
 		}()
+	}
+}
+
+// Matches type-tagged JSON received on `port` to element types of `chans`, then
+// sends the decoded value on the corresponding channel
+func Receiver(port int, errorChan chan<- error, chans ...interface{}) {
+	checkArgs(chans...)
+
+	addr := fmt.Sprintf(":%d", port)
+	listener, err := net.Listen("tcp4", addr)
+
+	if err != nil {
+		errorChan <- err
+		listener.Close()
+		return
+	}
+
+	var buf [1024]byte
+
+	conn, _ := listener.Accept()
+	for {
+		n, e := conn.Read(buf[0:])
+		if e != nil {
+			fmt.Printf("tcp.Receiver(:%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
+			errorChan <- err
+			conn.Close()
+			return
+		}
+		for _, ch := range chans {
+			T := reflect.TypeOf(ch).Elem()
+			typeName := T.String()
+			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
+				v := reflect.New(T)
+				json.Unmarshal(buf[len(typeName):n], v.Interface())
+
+				reflect.Select([]reflect.SelectCase{{
+					Dir:  reflect.SelectSend,
+					Chan: reflect.ValueOf(ch),
+					Send: reflect.Indirect(v),
+				}})
+			}
+		}
 	}
 }
 

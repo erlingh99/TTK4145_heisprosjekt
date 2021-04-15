@@ -71,20 +71,35 @@ func Receiver(port int, chans ...interface{}) {
 	}
 }
 
-func AddressReceiver(port int, channel chan net.Addr) {
-	checkArgs(channel)
+func AddressReceiver(port int, addrChannel chan net.Addr, messageChannels ...interface{}) {
+	checkArgs(messageChannels...)
 
 	var buf [1024]byte
 	conn := conn.DialBroadcastUDP(port)
 	for {
-		_, addr, e := conn.ReadFrom(buf[0:])
+		n, addr, e := conn.ReadFrom(buf[0:])
 
 		if e != nil {
 			fmt.Printf("bcast.AddressReceiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
 			//return
 		}
 
-		channel <- addr
+		addrChannel <- addr
+
+		for _, ch := range messageChannels {
+			T := reflect.TypeOf(ch).Elem()
+			typeName := T.String()
+			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
+				v := reflect.New(T)
+				json.Unmarshal(buf[len(typeName):n], v.Interface())
+
+				reflect.Select([]reflect.SelectCase{{
+					Dir:  reflect.SelectSend,
+					Chan: reflect.ValueOf(ch),
+					Send: reflect.Indirect(v),
+				}})
+			}
+		}
 	}
 }
 
