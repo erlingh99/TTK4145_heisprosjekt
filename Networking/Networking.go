@@ -90,6 +90,7 @@ func ChannelReader() {
 				channel := make(chan string)
 				go ConnectSendChannelToMaster(channel)
 				go func() {
+					fmt.Println("Sender Halla!")
 					time.Sleep(time.Second)
 					channel <- "Halla!"
 				}()
@@ -152,6 +153,8 @@ func AcceptIncomingConnections() {
 					fmt.Println("Got message:", <-channel)
 				}
 			}()
+		case err := <- errChannel:
+			fmt.Println("Got err in AcceptIncomingConnections():", err)
 		}
 	}
 }
