@@ -97,7 +97,7 @@ func ChannelReader() {
 		case port := <- connectPortRecvChannel:
 			ConnectPort = port
 		default:
-			time.Sleep(0.5 * time.Second)
+			time.Sleep(250 * time.Millisecond)
 			fmt.Println("Sleeping 1 second")
 		}
 	}
