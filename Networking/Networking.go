@@ -30,6 +30,35 @@ func Init() {
 	go ListenForBroadcastedIP(config.BROADCAST_PORT)
 }
 
+func NetworkingMainThread() {
+	iAmMaster := false
+	addrRecvChannel := make(chan net.Addr)
+	addrSendChannel := make(chan string)
+	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel)
+	startTime := time.Now()
+	for {
+		select {
+		case addr := <-addrRecvChannel:
+			// Long way:
+			// tcpAddr, _ := net.ResolveTCPAddr("tcp", addr.String())
+			// addrString := tcpAddr.IP.String()
+	
+			// Short way:
+			addrString := addr.(*net.UDPAddr).IP.String()
+			fmt.Println("Recieved broadcast:", addrString)
+			MasterAddress = addr
+		}
+
+		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
+		
+
+		if time.Now() > startTime + config.MASTER_BROADCAST_LISTEN_TIMEOUT {
+			// Timeout
+			go bcast.Transmitter(config.BROADCAST_PORT, addrSendChannel)
+		}
+	}
+}
+
 func SendRepeated() {
 	for {
 		time.Sleep(time.Second)
