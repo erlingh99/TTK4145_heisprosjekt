@@ -24,10 +24,11 @@ var MasterAddress net.Addr
 func Init() {
 	// go SpamChannel(sendNumChan)
 	fmt.Println("Init Networking")
-	CreateSendIntChannel(config.LISTEN_PORT)
-	CreateRecvIntChannel(config.CONNECT_ADDR, config.CONNECT_PORT)
-	go BroadcastMyIp(config.BROADCAST_PORT)
-	go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	// CreateSendIntChannel(config.LISTEN_PORT)
+	// CreateRecvIntChannel(config.CONNECT_ADDR, config.CONNECT_PORT)
+	// go BroadcastMyIp(config.BROADCAST_PORT)
+	// go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	go NetworkingMainThread()
 }
 
 func NetworkingMainThread() {
@@ -37,26 +38,48 @@ func NetworkingMainThread() {
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel)
 	startTime := time.Now()
 	for {
+		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
 		select {
 		case addr := <-addrRecvChannel:
 			// Long way:
 			// tcpAddr, _ := net.ResolveTCPAddr("tcp", addr.String())
 			// addrString := tcpAddr.IP.String()
-	
+			
 			// Short way:
-			addrString := addr.(*net.UDPAddr).IP.String()
-			fmt.Println("Recieved broadcast:", addrString)
-			MasterAddress = addr
+			// addrString := addr.(*net.UDPAddr).IP.String()
+			// fmt.Println("Recieved broadcast in Networking main thread:", addrString)
+			if !IsItMyAddress(addr.(*net.UDPAddr)) {
+				fmt.Println("There is another master at", addr)
+				MasterAddress = addr
+				iAmMaster = false
+			}
+		default:
+			// Just keep going
 		}
-
-		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
 		
-
-		if time.Now() > startTime + config.MASTER_BROADCAST_LISTEN_TIMEOUT {
+		if !iAmMaster && time.Now().After(startTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
 			// Timeout
+			fmt.Println("Timeout. I make myself master")
+			iAmMaster = true
 			go bcast.Transmitter(config.BROADCAST_PORT, addrSendChannel)
 		}
+
+		if iAmMaster {
+			message := "I am your master"
+			fmt.Printf("Broadcasting message: %s\n", message)
+			addrSendChannel <- message
+		}	
 	}
+}
+
+func IsItMyAddress(addr *net.UDPAddr) bool {
+	localAddrs, _ := net.InterfaceAddrs()
+	for _, localAddr := range localAddrs {
+		if addr.IP.String() == localAddr.(*net.IPNet).IP.String() {
+			return true
+		}
+	}
+	return false
 }
 
 func SendRepeated() {
