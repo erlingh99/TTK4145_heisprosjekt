@@ -45,6 +45,7 @@ func NetworkingMainThread() {
 	connectPortRecvChannel := make(chan int)
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
 	addrRecvLastTime := time.Now()
+	go AcceptIncomingConnections()
 	go func() {
 		for {
 			time.Sleep(config.MASTER_BROADCAST_INTERVAL)
@@ -80,6 +81,14 @@ func NetworkingMainThread() {
 				MasterAddress = addr
 				MasterIP = addr.(*net.UDPAddr).IP.String()
 				iAmMaster = false
+				channel := make(chan string)
+				ConnectSendChannelToMaster(channel)
+				go func() {
+					for {
+						time.Sleep(time.Second)
+						channel <- "Halla!"
+					}
+				}()
 			}
 		case port := <- connectPortRecvChannel:
 			ConnectPort = port
@@ -97,7 +106,7 @@ func IsItMyAddress(addr *net.UDPAddr) bool {
 	return false
 }
 
-func ConnectSendChannelToMaster(channel chan interface{}) {
+func ConnectSendChannelToMaster(channel interface{}) {
 	// sendChannel := make(chan int)
 	errChannel := make(chan error)
 	tcp.Transmitter(MasterIP, ConnectPort, errChannel, channel)
