@@ -2,9 +2,9 @@
 package elevatorManager
 
 import (
-	"elevio"
+	"elevatorproject/driver-go/elevio"
 
-	"../config"
+	"elevatorproject/config"
 )
 
 

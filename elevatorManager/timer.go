@@ -14,7 +14,7 @@ func timer_start(d time.Duration) {
 func timer_timedOut() bool {
 	select {
 	case _ = <-doorTimer.C:
-		fmt.Println("HAHARHERE")
+		fmt.Println("Timer timed out")
 		return true
 	default:
 		return false

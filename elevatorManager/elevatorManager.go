@@ -1,11 +1,10 @@
 package elevatorManager
 
 import (
-	"config"
-	"elevio"
+	"elevatorproject/config"
+	"elevatorproject/driver-go/elevio"
 	"fmt"
-
-	"../config"
+	"elevatorproject/config"
 )
 
 func elevatorManager() {
