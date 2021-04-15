@@ -97,7 +97,7 @@ func ChannelReader() {
 		case port := <- connectPortRecvChannel:
 			ConnectPort = port
 		default:
-			time.Sleep(time.Second)
+			time.Sleep(0.5 * time.Second)
 			fmt.Println("Sleeping 1 second")
 		}
 	}
@@ -116,9 +116,9 @@ func IsItMyAddress(addr *net.UDPAddr) bool {
 func ConnectSendChannelToMaster(channel interface{}) {
 	// sendChannel := make(chan int)
 	errChannel := make(chan error)
-	fmt.Println("hey")
+	fmt.Println("hey", ConnectPort)
 	go tcp.Transmitter(MasterIP, ConnectPort, errChannel, channel)
-	fmt.Println("hey2")
+	fmt.Println("hey2", ConnectPort)
 	for {
 		fmt.Println("Error in ConnectSendChannelToMaster():", <-errChannel)
 	}
