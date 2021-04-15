@@ -22,7 +22,7 @@ var recvIntErrChannels = list.New()
 var MasterAddress net.Addr
 var MasterIP string
 
-var addrRecvLastTime = time.Now()
+var AddrRecvLastTime = time.Now()
 
 // Used for accepting incoming connections
 var NextOpenPort = 20003
@@ -46,13 +46,13 @@ func NetworkingMainThread() {
 	addrSendChannel := make(chan int)
 	connectPortRecvChannel := make(chan int)
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
-	addrRecvLastTime = time.Now()
+	AddrRecvLastTime = time.Now()
 	go AcceptIncomingConnections()
 	go func() {
 		for {
 			time.Sleep(config.MASTER_BROADCAST_INTERVAL)
 			
-			if !iAmMaster && time.Now().After(addrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
+			if !iAmMaster && time.Now().After(AddrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
 				// Timeout
 				fmt.Println("Timeout. I make myself master")
 				iAmMaster = true
@@ -79,7 +79,7 @@ func NetworkingMainThread() {
 			// fmt.Println("Recieved broadcast in Networking main thread:", addrString)
 			if !IsItMyAddress(addr.(*net.UDPAddr)) {
 				fmt.Println("There is another master at", addr)
-				addrRecvLastTime = time.Now()
+				AddrRecvLastTime = time.Now()
 				MasterAddress = addr
 				MasterIP = addr.(*net.UDPAddr).IP.String()
 				iAmMaster = false
