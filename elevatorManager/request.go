@@ -1,8 +1,8 @@
 package elevatorManager
 
 import (
-	"../elevio"
- 	"../config"
+	"elevatorproject/elevio"
+ 	"elevatorproject/config"
 )
 
 //Checking for request below current floor, if there is return true
