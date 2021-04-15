@@ -1,13 +1,12 @@
-package main
+package orderHandler
 
 import (
-	//"../elevatorManager"
-	"../network/bcast"
-	"../network/localip"
-	"container/list"
-	"encoding/json"
+	. "elevatorproject/elevatorManager"
 	"fmt"
 	"time"
+
+	"../network/localip"
+	. "..driver-go/elevio"
 )
 
 const (
@@ -15,19 +14,19 @@ const (
 	ORDER_COMPLETION_MAX_TIME = 10000 //ms, 10 sec
 )
 
-type handlerState int
+type handlerMode int
 
 const (
-	SLAVE handlerState = iota
+	SLAVE handlerMode = iota
 	MASTER
 )
 
 //state
 type OrderHandlerState struct {
-	State          handlerState
+	Mode           handlerMode
 	Id             int
-	AllOrders      list.List
-	ElevatorStates []Elevator
+	AllOrders      OrderList
+	ElevatorStates map[string]Elevator
 	LocalIP        string
 }
 
@@ -44,11 +43,11 @@ func OrderHandler(orderUpdate <-chan Order,
 		fmt.Printf("Error no internet connection: ", err)
 	}
 
-	handler := OrderHandler{
+	handler := OrderHandlerState{
 		Id:             id,
 		ElevatorStates: make(map[string]Elevator),
-		AllOrders:      list.New(),
-		State:          SLAVE,
+		AllOrders:      make(OrderList, 0),
+		Mode:           SLAVE,
 		LocalIP:        ip}
 
 	//outputs
@@ -60,7 +59,7 @@ func OrderHandler(orderUpdate <-chan Order,
 	masterTimeoutTimer := time.NewTimer(IDLE_CONN_TIMEOUT * time.Millisecond)
 
 	for {
-		switch handler.State {
+		switch handler.Mode {
 		case SLAVE:
 			select {
 			case <-aliveMsg:
@@ -72,7 +71,7 @@ func OrderHandler(orderUpdate <-chan Order,
 			case <-masterTimeoutTimer.C: //master has disconnected
 				handler.Id--
 				if handler.Id == 0 {
-					handler.State = MASTER
+					handler.Mode = MASTER
 				} else {
 					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 				}
@@ -89,13 +88,19 @@ func OrderHandler(orderUpdate <-chan Order,
 		case MASTER:
 			select {
 			case newOrder := <-orderUpdate:
+				handler.AllOrders.OrderUpdate(newOrder)
 			case newState := <-elevatorStateUpdate:
+				for k, e := range handler.ElevatorStates {
+					if e.ID == newState.ID {
+						handler.ElevatorStates[k] = e
+					}
+				}
 			case msg := <-aliveMsg:
 			case req := <-connRequest:
 			case err := <-connError:
 			}
 
-			//calculate order
+			//assign orders
 			redistributeOrders(handler.AllOrders, handler.ElevatorStates)
 
 			//check for master duplicate
@@ -108,7 +113,7 @@ func OrderHandler(orderUpdate <-chan Order,
 	}
 }
 
-func redistributeOrders(orders list.List, elevatorStates []Elevator) {
+func redistributeOrders(orders OrderList, elevatorStates []Elevator) {
 
 	Distributer()
 }
@@ -122,18 +127,18 @@ func sendToPeer(peerID string, o Order) {
 }
 
 func connectToMaster() int {
-	bcast.Receiver(PORT)
+
 }
 
 func (e Elevator) toHRAFormat() HRAElevState {
 	h := HRAElevState{}
-	switch e.Behavior {
-	case EB_IDLE:
+	switch e.Behaviour {
+	case EB_Idle:
 		h.Behavior = "idle"
 	case EB_DoorOpen:
-		h.behavior = "doorOpen"
+		h.Behavior = "doorOpen"
 	case EB_Moving:
-		h.behavior = "moving"
+		h.Behavior = "moving"
 	}
 
 	switch e.Dirn {
@@ -157,4 +162,16 @@ type HRAElevState struct {
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
 	CabRequests []bool `json:"cabRequests"`
+}
+
+type HRAInput struct {
+	HallOrder [][2]bool
+	States    map[string]Elevator
+}
+
+func toHRAInput(allOrders OrderList, allStates map[string]Elevator) {
+	input := HRAInput{}
+
+	hallOrders, CabOrders := allOrders.OrderListToHRAFormat()
+
 }

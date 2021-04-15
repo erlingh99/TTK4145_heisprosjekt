@@ -8,7 +8,7 @@ import (
 )
 
 
-var Elevator elevator
+var elevator Elevator
 
 func setAllLights(Elevator es) {
 	for (floor := 0; floor < N_FLOORS; floor++) {

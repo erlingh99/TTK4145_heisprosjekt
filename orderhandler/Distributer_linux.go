@@ -1,4 +1,4 @@
-package main
+package orderHandler
 
 import (
 	"os/exec"
