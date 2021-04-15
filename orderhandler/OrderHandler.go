@@ -108,15 +108,8 @@ func OrderHandler(orderUpdate <-chan Order,
 				//remove from peers
 			}
 
-			//assign orders
+			//something has changed, so redistribute orders
 			redistributeOrders(handler.AllOrders, handler.ElevatorStates)
-
-			//check for master duplicate
-			if masterDuplicate() {
-				handler.State = SLAVE
-				connectToMaster()
-				//reset timer?
-			}
 		}
 	}
 }
@@ -136,7 +129,11 @@ func redistributeOrders(orders OrderList, elevatorStates map[string]Elevator) {
 }
 
 func sendToPeer(peerID string, orders [][2]bool) {
+	if orders == nil {
+		return
+	}
 
+	//network stuff
 }
 
 func connectToMaster() int {
