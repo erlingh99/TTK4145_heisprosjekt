@@ -133,8 +133,8 @@ func AcceptIncomingConnections() {
 	for {
 		channel := make(chan string)
 		errChannel := make(chan error)
-		go tcp.Receiver(NextOpenPort, errChannel, channel)
 		NextOpenPort++
+		go tcp.Receiver(NextOpenPort, errChannel, channel)
 		select {
 		case message := <-channel:
 			fmt.Println("Got message:", message)
