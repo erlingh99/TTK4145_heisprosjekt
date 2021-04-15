@@ -115,7 +115,9 @@ func IsItMyAddress(addr *net.UDPAddr) bool {
 func ConnectSendChannelToMaster(channel interface{}) {
 	// sendChannel := make(chan int)
 	errChannel := make(chan error)
+	fmt.Println("hey")
 	go tcp.Transmitter(MasterIP, ConnectPort, errChannel, channel)
+	fmt.Println("hey2")
 	for {
 		fmt.Println("Error in ConnectSendChannelToMaster():", <-errChannel)
 	}
