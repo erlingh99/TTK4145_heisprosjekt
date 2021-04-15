@@ -65,29 +65,27 @@ func Transmitter(ip string, port int, errorChan chan<- error, chans ...interface
 	}
 
 	for {
-		go func() {
-			selectCases := make([]reflect.SelectCase, n)
-			typeNames := make([]string, n)
-			for i, ch := range chans {
-				selectCases[i] = reflect.SelectCase{
-					Dir:  reflect.SelectRecv,
-					Chan: reflect.ValueOf(ch),
-				}
-				typeNames[i] = reflect.TypeOf(ch).Elem().String()
+		selectCases := make([]reflect.SelectCase, n)
+		typeNames := make([]string, n)
+		for i, ch := range chans {
+			selectCases[i] = reflect.SelectCase{
+				Dir:  reflect.SelectRecv,
+				Chan: reflect.ValueOf(ch),
 			}
+			typeNames[i] = reflect.TypeOf(ch).Elem().String()
+		}
 
-			for {
-				chosen, value, _ := reflect.Select(selectCases)
-				buf, _ := json.Marshal(value.Interface())
+		for {
+			chosen, value, _ := reflect.Select(selectCases)
+			buf, _ := json.Marshal(value.Interface())
 
-				_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
+			_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
 
-				if err != nil {
-					errorChan <- err
-					return
-				}
+			if err != nil {
+				errorChan <- err
+				return
 			}
-		}()
+		}
 	}
 }
 
@@ -153,8 +151,8 @@ func Receiver(port int, errorChan chan<- error, chans ...interface{}) {
 
 	var buf [1024]byte
 
-	conn, _ := listener.Accept()
 	for {
+		conn, _ := listener.Accept()
 		n, e := conn.Read(buf[0:])
 		if e != nil {
 			fmt.Printf("tcp.Receiver(:%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
