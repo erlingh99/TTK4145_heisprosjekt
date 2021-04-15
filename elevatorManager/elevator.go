@@ -1,8 +1,8 @@
 package elevatorManager
 
 import (
-	"../config"
-	"../elevio"
+	"elevatorproject/config"
+	"elevatorproject/driver-go/elevio"
 )
 
 type ElevatorBehaviour int

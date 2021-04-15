@@ -7,10 +7,8 @@ import (
 
 var N_FLOORS = 3
 var N_BUTTONS = 3
-<<<<<<< HEAD
 var DOOR_TIMEOUT = 3 * time.Second
 var POLLRATE = 25 * time.Millisecond
-=======
 
 
 const CONNECT_ADDR = "192.168.1.176"
@@ -22,4 +20,3 @@ const BROADCAST_PORT = 20001
 
 const MASTER_BROADCAST_INTERVAL = 1 * time.Second
 const MASTER_BROADCAST_LISTEN_TIMEOUT = 3 * time.Second
->>>>>>> origin/networking

@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 	"time"
-	"../config"
+	"elevatorproject/config"
 )
 
 const _pollRate = 20 * time.Millisecond
