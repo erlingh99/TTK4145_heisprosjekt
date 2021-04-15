@@ -2,28 +2,43 @@ package main
 
 import (
 	"fmt"
-	"./config"
-	"./network/tcp"
+	// "time"
+	"elevatorproject/config"
+	// "./network/tcp"
+	"elevatorproject/Networking"
+	// "./test"
 )
 
 func main() {
 	fmt.Println("Number of floors:", config.N_FLOORS);
+	Networking.Init()
+	Networking.ReadOnce()
+	// go test.Test()
+	// go test.Test()
+	// recvChannel := make(chan int)
+	// recvErrorChannel := make(chan error)
+	// sendChannel := make(chan int)
+	// sendErrorChannel := make(chan error)
 	fmt.Println("yo")
 	// IMPORTANT NOTE on how to use:
 	// You can only send messages from master to slave and not from slave to master
-	go tcp.Slave("10.100.23.167", 20001, errorChannel, testChannel)
-	// go tcp.Master(20001, errorChannel, testChannel)
+	// go tcp.Slave(config.CONNECT_ADDR, config.CONNECT_PORT, recvErrorChannel, recvChannel)
+	// go tcp.Master(config.LISTEN_PORT, sendErrorChannel, sendChannel)
 	fmt.Println("yo2")
 
-	for {
-		// testChannel <- 69
-		select {
-		case a := <-testChannel:
-			a = a
-			fmt.Println("Testmessage")
-		case a := <-errorChannel:
-			a = a
-			fmt.Println("Errormessage")
-		}
-	}
+	// for {
+	// 	time.Sleep(1000 * time.Millisecond)
+	// 	sendChannel <- 69
+	// 	select {
+	// 	case a := <-recvChannel:
+	// 		a = a
+	// 		fmt.Println("Testmessage:", a)
+	// 	case a := <-recvErrorChannel:
+	// 		a = a
+	// 		fmt.Println("Recieve errormessage:", a)
+	// 	case a := <-sendErrorChannel:
+	// 		a = a
+	// 		fmt.Println("Send errormessage:", a)
+	// 	}
+	// }
 }

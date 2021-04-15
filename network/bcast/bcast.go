@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"../conn"
+	"elevatorproject/network/conn"
 )
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
@@ -68,6 +68,23 @@ func Receiver(port int, chans ...interface{}) {
 				}})
 			}
 		}
+	}
+}
+
+func AddressReceiver(port int, channel chan net.Addr) {
+	checkArgs(channel)
+
+	var buf [1024]byte
+	conn := conn.DialBroadcastUDP(port)
+	for {
+		_, addr, e := conn.ReadFrom(buf[0:])
+
+		if e != nil {
+			fmt.Printf("bcast.AddressReceiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
+			//return
+		}
+
+		channel <- addr
 	}
 }
 
