@@ -96,6 +96,8 @@ func ChannelReader() {
 			}
 		case port := <- connectPortRecvChannel:
 			ConnectPort = port
+		default:
+			
 		}
 	}
 }
