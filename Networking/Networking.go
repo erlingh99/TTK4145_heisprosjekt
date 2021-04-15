@@ -22,6 +22,8 @@ var recvIntErrChannels = list.New()
 var MasterAddress net.Addr
 var MasterIP string
 
+var addrRecvLastTime = time.Now()
+
 // Used for accepting incoming connections
 var NextOpenPort = 20003
 
@@ -44,7 +46,7 @@ func NetworkingMainThread() {
 	addrSendChannel := make(chan int)
 	connectPortRecvChannel := make(chan int)
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
-	addrRecvLastTime := time.Now()
+	addrRecvLastTime = time.Now()
 	go AcceptIncomingConnections()
 	go func() {
 		for {
