@@ -3,11 +3,12 @@ package elevatorManager
 import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
+	"fmt"
 )
 
 type ElevatorBehaviour int
 
-const (
+const ( //hva med STOPPED
 	EB_Idle     ElevatorBehaviour = 1
 	EB_DoorOpen                   = 0
 	EB_Moving                     = -1
@@ -21,7 +22,11 @@ type Elevator struct {
 	ID        string //unique identifier
 }
 
-func (e Elevator) toHRAFormat() HRAElevState {
+func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
+	if !e.Available {
+		return nil, fmt.Errorf("Elevator not available")
+	}
+
 	h := HRAElevState{}
 	switch e.Behaviour {
 	case EB_Idle:
@@ -41,11 +46,9 @@ func (e Elevator) toHRAFormat() HRAElevState {
 		h.Direction = "down"
 	}
 	h.Floor = e.Floor
-	h.CabRequests = make([]bool, config.N_FLOORS)
-	for f, reqs := range e.Requests {
-		h.CabRequests[f] = reqs[elevio.BT_Cab]
-	}
-	return h
+	h.CabRequests = cabOrders
+
+	return h, nil
 }
 
 type HRAElevState struct {

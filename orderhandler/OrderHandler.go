@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"../network/localip"
-	. "..driver-go/elevio"
 )
 
 const (
@@ -70,20 +69,18 @@ func OrderHandler(orderUpdate <-chan Order,
 
 			case <-masterTimeoutTimer.C: //master has disconnected
 				handler.Id--
-				if handler.Id == 0 {
+				if handler.Id == 0 { //should prob find soemthing else
 					handler.Mode = MASTER
 				} else {
 					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 				}
 
-			case cp := <-checkpoint:
+			case cp := <-checkpoint: //should it always be accepted? ID check
 				handler.AllOrders = cp.AllOrders
 				handler.ElevatorStates = cp.ElevatorStates
 			case <-connError:
-				//cannot connect to master
+				handler.Mode = MASTER
 			}
-
-			//do slave stuff on change
 
 		case MASTER:
 			select {
@@ -96,8 +93,19 @@ func OrderHandler(orderUpdate <-chan Order,
 					}
 				}
 			case msg := <-aliveMsg:
+				if msg != handler.LocalIP {
+					handler.Mode = SLAVE
+					if !masterTimeoutTimer.Stop() {
+						<-masterTimeoutTimer.C
+					}
+					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
+					//connect to other master msg=ip
+					//continue
+				}
 			case req := <-connRequest:
+				//add to peers, give priority
 			case err := <-connError:
+				//remove from peers
 			}
 
 			//assign orders
@@ -113,16 +121,21 @@ func OrderHandler(orderUpdate <-chan Order,
 	}
 }
 
-func redistributeOrders(orders OrderList, elevatorStates []Elevator) {
+func redistributeOrders(orders OrderList, elevatorStates map[string]Elevator) {
+	input := toHRAInput(orders, elevatorStates)
+	output, err := Distributer(input)
 
-	Distributer()
+	if err != nil {
+		fmt.Printf("Error distributing orders ", err)
+		return
+	}
+
+	for k := range elevatorStates {
+		sendToPeer(k, output[k])
+	}
 }
 
-func masterDuplicate() bool {
-
-}
-
-func sendToPeer(peerID string, o Order) {
+func sendToPeer(peerID string, orders [][2]bool) {
 
 }
 
@@ -130,48 +143,22 @@ func connectToMaster() int {
 
 }
 
-func (e Elevator) toHRAFormat() HRAElevState {
-	h := HRAElevState{}
-	switch e.Behaviour {
-	case EB_Idle:
-		h.Behavior = "idle"
-	case EB_DoorOpen:
-		h.Behavior = "doorOpen"
-	case EB_Moving:
-		h.Behavior = "moving"
-	}
-
-	switch e.Dirn {
-	case MD_Up:
-		h.Direction = "up"
-	case MD_Stop:
-		h.Direction = "stop"
-	case MD_Down:
-		h.Direction = "down"
-	}
-	h.Floor = e.Floor
-	h.CabRequests = make([]bool, e.NumFloors)
-	for f, reqs := range e.Requests {
-		h.CabRequests[f] = reqs[BT_Cab]
-	}
-	return h
-}
-
-type HRAElevState struct {
-	Behavior    string `json:"behavior"`
-	Floor       int    `json:"floor"`
-	Direction   string `json:"direction"`
-	CabRequests []bool `json:"cabRequests"`
-}
-
 type HRAInput struct {
 	HallOrder [][2]bool
-	States    map[string]Elevator
+	States    map[string]HRAElevState
 }
 
-func toHRAInput(allOrders OrderList, allStates map[string]Elevator) {
+func toHRAInput(allOrders OrderList, allStates map[string]Elevator) HRAInput {
 	input := HRAInput{}
 
 	hallOrders, CabOrders := allOrders.OrderListToHRAFormat()
 
+	input.HallOrder = hallOrders
+	for k, elev := range allStates {
+		states, err := elev.ToHRAFormat(CabOrders[k])
+		if err == nil {
+			input.States[k] = states
+		}
+	}
+	return input
 }
