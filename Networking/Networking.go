@@ -58,7 +58,7 @@ func NetworkingMainThread() {
 			// Just keep going
 		}
 		
-		if !iAmMaster && time.Now().After(startTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
+		if !iAmMaster && time.Now().After(addrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
 			// Timeout
 			fmt.Println("Timeout. I make myself master")
 			iAmMaster = true
