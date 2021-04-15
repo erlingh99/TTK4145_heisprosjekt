@@ -97,7 +97,7 @@ func ChannelReader() {
 		case port := <- connectPortRecvChannel:
 			ConnectPort = port
 		default:
-			
+
 		}
 	}
 }
@@ -115,7 +115,7 @@ func IsItMyAddress(addr *net.UDPAddr) bool {
 func ConnectSendChannelToMaster(channel interface{}) {
 	// sendChannel := make(chan int)
 	errChannel := make(chan error)
-	tcp.Transmitter(MasterIP, ConnectPort, errChannel, channel)
+	go tcp.Transmitter(MasterIP, ConnectPort, errChannel, channel)
 	for {
 		fmt.Println("Error in ConnectSendChannelToMaster():", <-errChannel)
 	}
