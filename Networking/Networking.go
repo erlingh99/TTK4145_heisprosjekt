@@ -46,6 +46,8 @@ func Init() {
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
 	AddrRecvLastTime = time.Now()
 	go AcceptIncomingConnections()
+	go TimeoutController()
+	go ChannelReader()
 }
 
 func TimeoutController() {
