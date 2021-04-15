@@ -36,7 +36,7 @@ func NetworkingMainThread() {
 	addrRecvChannel := make(chan net.Addr)
 	addrSendChannel := make(chan string)
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel)
-	startTime := time.Now()
+	addrRecvLastTime := time.Now()
 	for {
 		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
 		select {
@@ -50,6 +50,7 @@ func NetworkingMainThread() {
 			// fmt.Println("Recieved broadcast in Networking main thread:", addrString)
 			if !IsItMyAddress(addr.(*net.UDPAddr)) {
 				fmt.Println("There is another master at", addr)
+				addrRecvLastTime = time.Now()
 				MasterAddress = addr
 				iAmMaster = false
 			}
