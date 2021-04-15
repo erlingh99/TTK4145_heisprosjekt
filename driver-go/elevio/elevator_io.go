@@ -17,17 +17,17 @@ var _conn net.Conn
 type MotorDirection int
 
 const (
-	MD_Up   MotorDirection = 1
-	MD_Down                = -1
-	MD_Stop                = 0
+	MD_Down MotorDirection = iota - 1
+	MD_Stop
+	MD_Up
 )
 
 type ButtonType int
 
 const (
-	BT_HallUp   ButtonType = 0
-	BT_HallDown            = 1
-	BT_Cab                 = 2
+	BT_HallUp ButtonType = iota
+	BT_HallDown
+	BT_Cab
 )
 
 type ButtonEvent struct {
@@ -87,7 +87,7 @@ func PollButtons(receiver chan<- ButtonEvent) {
 		for f := 0; f < _numFloors; f++ {
 			for b := ButtonType(0); b < 3; b++ {
 				v := getButton(b, f)
-				if v != prev[f][b] && v != false {
+				if v != prev[f][b] && v {
 					receiver <- ButtonEvent{f, ButtonType(b)}
 				}
 				prev[f][b] = v

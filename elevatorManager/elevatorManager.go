@@ -1,29 +1,18 @@
-package main
+package elevatorManager
 
-import (
-	"fmt"
+import "./elevio"
+import "fmt"
 
-	"./elevio"
-)
+func ElevatorManager() {
+	drvButtons := make(chan elevio.ButtonEvent)
+	drvFloors := make(chan int)
+	drvObstr := make(chan bool)
+	drvStop := make(chan bool)
 
-func main() {
-
-	numFloors := 4
-
-	elevio.Init("localhost:15657", numFloors)
-
-	var d elevio.MotorDirection = elevio.MD_Up
-	//elevio.SetMotorDirection(d)
-
-	drv_buttons := make(chan elevio.ButtonEvent)
-	drv_floors := make(chan int)
-	drv_obstr := make(chan bool)
-	drv_stop := make(chan bool)
-
-	go elevio.PollButtons(drv_buttons)
-	go elevio.PollFloorSensor(drv_floors)
-	go elevio.PollObstructionSwitch(drv_obstr)
-	go elevio.PollStopButton(drv_stop)
+	go elevio.PollButtons(drvButtons)
+	go elevio.PollFloorSensor(drvFloors)
+	go elevio.PollObstructionSwitch(drvObstr)
+	go elevio.PollStopButton(drvStop)
 
 	for {
 		select {
