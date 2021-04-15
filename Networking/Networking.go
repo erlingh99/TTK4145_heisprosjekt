@@ -19,10 +19,16 @@ var sendIntErrChannels = list.New()
 var recvIntChannels = list.New()
 var recvIntErrChannels = list.New()
 
+var addrRecvChannel = make(chan net.Addr)
+var addrSendChannel = make(chan int)
+var connectPortRecvChannel = make(chan int)
+
 var MasterAddress net.Addr
 var MasterIP string
 
 var AddrRecvLastTime = time.Now()
+
+var iAmMaster = false
 
 // Used for accepting incoming connections
 var NextOpenPort = 20003
@@ -37,36 +43,32 @@ func Init() {
 	// CreateRecvIntChannel(config.CONNECT_ADDR, config.CONNECT_PORT)
 	// go BroadcastMyIp(config.BROADCAST_PORT)
 	// go ListenForBroadcastedIP(config.BROADCAST_PORT)
-	go NetworkingMainThread()
-}
-
-func NetworkingMainThread() {
-	iAmMaster := false
-	addrRecvChannel := make(chan net.Addr)
-	addrSendChannel := make(chan int)
-	connectPortRecvChannel := make(chan int)
 	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
 	AddrRecvLastTime = time.Now()
 	go AcceptIncomingConnections()
-	go func() {
-		for {
-			time.Sleep(config.MASTER_BROADCAST_INTERVAL)
-			
-			if !iAmMaster && time.Now().After(AddrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
-				// Timeout
-				fmt.Println("Timeout. I make myself master")
-				iAmMaster = true
-				go bcast.Transmitter(config.BROADCAST_PORT, addrSendChannel)
-			}
+}
+
+func TimeoutController() {
+	for {
+		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
 		
-			if iAmMaster {
-				// message := "I am your master"
-				message := NextOpenPort
-				fmt.Printf("Broadcasting message: %d\n", message)
-				addrSendChannel <- message
-			}
+		if !iAmMaster && time.Now().After(AddrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
+			// Timeout
+			fmt.Println("Timeout. I make myself master")
+			iAmMaster = true
+			go bcast.Transmitter(config.BROADCAST_PORT, addrSendChannel)
 		}
-	}()
+	
+		if iAmMaster {
+			// message := "I am your master"
+			message := NextOpenPort
+			fmt.Printf("Broadcasting message: %d\n", message)
+			addrSendChannel <- message
+		}
+	}
+}
+
+func ChannelReader() {
 	for {
 		select {
 		case addr := <-addrRecvChannel:
@@ -86,10 +88,8 @@ func NetworkingMainThread() {
 				channel := make(chan string)
 				go ConnectSendChannelToMaster(channel)
 				go func() {
-					for {
-						time.Sleep(time.Second)
-						channel <- "Halla!"
-					}
+					time.Sleep(time.Second)
+					channel <- "Halla!"
 				}()
 			}
 		case port := <- connectPortRecvChannel:
