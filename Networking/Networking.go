@@ -84,7 +84,7 @@ func NetworkingMainThread() {
 				MasterIP = addr.(*net.UDPAddr).IP.String()
 				iAmMaster = false
 				channel := make(chan string)
-				ConnectSendChannelToMaster(channel)
+				go ConnectSendChannelToMaster(channel)
 				go func() {
 					for {
 						time.Sleep(time.Second)
