@@ -1,4 +1,4 @@
-package orderHandler
+package orders
 
 type OrderList []Order
 

@@ -1,4 +1,4 @@
-package orderHandler
+package orders
 
 import (
 	. "elevatorproject/driver-go/elevio"
@@ -32,7 +32,7 @@ type Order struct {
 	Destination        floor
 	Timestamp          time.Time
 	AssignedElevatorID string
-	ID                 int
+	ID                 string
 }
 
 func NewOrder(be ButtonEvent, elevID string) Order {
