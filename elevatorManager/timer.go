@@ -1,32 +1,27 @@
 package elevatorManager
 
 import (
-	"fmt"
 	"time"
 )
 
+
 var doorTimer *time.Timer
+var timerStarted = false
 
 func timer_start(d time.Duration) {
 	doorTimer = time.NewTimer(d)
+	timerStarted = true
 }
 
 func timer_timedOut() bool {
-	select {
-	case _ = <-doorTimer.C:
-		fmt.Println("Timer timed out")
-		return true
-	default:
-		return false
+	if timerStarted {
+		select {
+		case _ = <-doorTimer.C:
+			timerStarted = false
+			return true
+		default:
+			return false
+		}
 	}
+	return false
 }
-
-// func main() {
-// 	timer_start(config.DOOR_TIMEOUT)
-// 	fmt.Println("TIMER STARTED")
-
-// 	for !timer_timedOut() {
-
-// 	}
-// 	fmt.Println("TIMER DONE")
-// }

@@ -15,11 +15,12 @@ const (
 )
 
 type Elevator struct {
-	Floor     int
-	Requests  [config.N_FLOORS][config.N_BUTTONS]bool
-	Behaviour ElevatorBehaviour
-	Dirn      elevio.MotorDirection
-	ID        string //unique identifier
+	floor     		int
+	requests  		[config.N_FLOORS][config.N_BUTTONS]int
+	behaviour 		ElevatorBehaviour
+	dirn      		elevio.MotorDirection
+	obstruction 	bool
+	ID        		string //unique identifier
 }
 
 func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
@@ -56,4 +57,5 @@ type HRAElevState struct {
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
 	CabRequests []bool `json:"cabRequests"`
+
 }

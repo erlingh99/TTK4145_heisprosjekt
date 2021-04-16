@@ -1,98 +1,59 @@
 package elevatorManager
-<<<<<<< HEAD
-
-import "./elevio"
-import "fmt"
-
-func ElevatorManager() {
-=======
 
 import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
 	"fmt"
-	"elevatorproject/config"
+	"time"
 )
 
-func elevatorManager() {
-	fmt.Println(("Started"))
-
-	if elevio.PollFloorSensor {
+func ElevatorManager() {
+	fmt.Println(("Elevator Manager started"))
+	if elevator.floor== -1 {
 		fsm_onInitBetweenFloor()
 	}
 
->>>>>>> 5cac751806bfb8ff7f7b70f66201ad2538b836c2
 	drvButtons := make(chan elevio.ButtonEvent)
-	drvFloors := make(chan int)
-	drvObstr := make(chan bool)
-	drvStop := make(chan bool)
+	drvFloors  := make(chan int)
+	drvObstr   := make(chan bool)
+	drvStop    := make(chan bool)
+	
 
 	go elevio.PollButtons(drvButtons)
 	go elevio.PollFloorSensor(drvFloors)
 	go elevio.PollObstructionSwitch(drvObstr)
 	go elevio.PollStopButton(drvStop)
-<<<<<<< HEAD
 
-	for {
-		select {
-		case a := <-drv_buttons:
-			fmt.Printf("%+v\n", a)
-			elevio.SetButtonLamp(a.Button, a.Floor, true)
 
-		case a := <-drv_floors:
-			fmt.Printf("%+v\n", a)
-			if a == numFloors-1 {
-				d = elevio.MD_Down
-			} else if a == 0 {
-				d = elevio.MD_Up
-			}
-			elevio.SetMotorDirection(d)
-
-		case a := <-drv_obstr:
-			fmt.Printf("%+v\n", a)
-			if a {
-				elevio.SetMotorDirection(elevio.MD_Stop)
-			} else {
-				elevio.SetMotorDirection(d)
-			}
-
-		case a := <-drv_stop:
-			fmt.Printf("%+v\n", a)
-			for f := 0; f < numFloors; f++ {
-				for b := elevio.ButtonType(0); b < 3; b++ {
-					elevio.SetButtonLamp(b, f, false)
-				}
-			}
-		}
-	}
-=======
-	var prevRequests [config.N_FLOORS][config.N_BUTTONS]int
-	var prevFloorSensor int
     for {
-        select {
-        case v := <- drv_buttons:
-			fmt.Println("Button pressed")
-			if (a != prev[v.Floor][v.Button]) {
-				fsm_onRequestButtonPress(v.Floor, v.Button)
-			}
-            prev[v.Floor][v.Button] = 1
-            
-        case f := <- drv_floors:
-            if (f != -1 && f != prevFloorSensor) {
-				fsm_onFloorArrival(f)
-				fmt.Println("Hit floor")
-			}
-            
-            
-        case a := <- drv_obstr:
-            
-        case a := <- drv_stop:
-        }
-
-	
-		if (timer_timedOut()) {
+		if timer_timedOut() {
+			fmt.Println("DOOR TIME OUT")
 			fsm_onDoorTimeout()
 		}
+        select {
+			case v := <- drvButtons:
+				fmt.Println("Button pressed")
+				fsm_onRequestButtonPress(v.Floor, v.Button)
+				fmt.Println(elevator.requests)
+				
+			case f := <- drvFloors:
+				fmt.Println("Hit floor")
+				fsm_onFloorArrival(f)
+		
+			case b := <- drvObstr:
+				elevator.obstruction = b
+				fmt.Println(b)
+
+        //case b := <- drvStop:
+
+		default:
+        }
+		time.Sleep(config.POLLRATE)
+
+		if elevator.obstruction && elevator.behaviour == EB_DoorOpen{
+			timer_start(config.DOOR_TIMEOUT)
+		}
+		
     }
->>>>>>> 5cac751806bfb8ff7f7b70f66201ad2538b836c2
+
 }

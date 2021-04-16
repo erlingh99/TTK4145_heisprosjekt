@@ -3,13 +3,17 @@ package main
 import (
 	"fmt"
 	// "time"
-	"elevatorproject/config"
 	"elevatorproject/elevatorManager"
+	"elevatorproject/driver-go/elevio"
+	"elevatorproject/config"
 	// "./network/tcp"
 	//"elevatorproject/Networking"
 	// "./test"
 )
 
 func main() {
-		elevatorManager()
+	elevio.Init("localhost:15657", config.N_FLOORS)
+	fmt.Println("Starting elevatorManager")
+	go elevatorManager.ElevatorManager()
+	for {}
 }

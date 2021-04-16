@@ -5,10 +5,11 @@ import (
 	"time"
 )
 
-const N_FLOORS = 3
+const N_FLOORS = 4
 const N_BUTTONS = 3
 const DOOR_TIMEOUT = 3 * time.Second
 const POLLRATE = 25 * time.Millisecond
+
 
 const CONNECT_ADDR = "192.168.1.176"
 const CONNECT_PORT = 20002
