@@ -3,11 +3,12 @@ package elevatorManager
 import (
 	"elevatorproject/driver-go/elevio"
  	"elevatorproject/config"
+	 "fmt"
 )
 
 //Checking for request below current floor, if there is return true
 func request_above() bool {
-	for f := elevator.floor; f < config.N_FLOORS; f++ {
+	for f := elevator.floor + 1; f < config.N_FLOORS; f++ {
 		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
 			 if (elevator.requests[f][btn] != 0) {
 				 return true
@@ -22,10 +23,12 @@ func request_below() bool {
 	for f := 0; f < elevator.floor; f++ {
 		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
 			 if (elevator.requests[f][btn] != 0) {
-				 return true
-			 }
+				fmt.Println("Returning true")
+				return true
+			}
 		}
 	}
+	fmt.Println("Returning false")
 	return false
 }
 
@@ -69,7 +72,7 @@ func request_shouldStop() bool {
 		(elevator.requests[elevator.floor][elevio.BT_HallDown] != 0)|| 
 		(elevator.requests[elevator.floor][elevio.BT_Cab] != 0)	    ||
 		!request_below() )
-	case elevio.MD_Up: 
+	case elevio.MD_Up:
 		return (
 		(elevator.requests[elevator.floor][elevio.BT_HallUp] != 0) || 
 		(elevator.requests[elevator.floor][elevio.BT_Cab] != 0)	 ||
@@ -86,6 +89,7 @@ func request_shouldStop() bool {
 func request_clearAtCurrentFloor() Elevator {
 	for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
 		 elevator.requests[elevator.floor][btn] = 0
+		 elevio.SetButtonLamp(btn, elevator.floor, false)
 	}
 	return elevator
 }

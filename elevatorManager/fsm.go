@@ -25,25 +25,30 @@ func fsm_onInitBetweenFloor() {
 	elevator.behaviour = EB_Moving
 }
 
-func fsm_onRequestButtonPress(floor int, btn elevio.ButtonType) {
+func fsm_onRequestButtonPress(reqFloor int, reqBtn elevio.ButtonType) {
 	//ADD printing for debug
 
 	switch(elevator.behaviour) {
 	case EB_DoorOpen:
-		if (elevator.floor == floor) {
+		if (elevator.floor == reqFloor) {
 			timer_start(config.DOOR_TIMEOUT)
 		} else {
-			elevator.requests[floor][btn] = 1
+			elevator.requests[reqFloor][reqBtn] = 1
+			elevio.SetButtonLamp(reqBtn, reqFloor, true)
 		}
+	
 	case EB_Moving:
-		elevator.requests[floor][btn] = 1
+		elevator.requests[reqFloor][reqBtn] = 1
+		elevio.SetButtonLamp(reqBtn, reqFloor, true)
+	
 	case EB_Idle:
-		if (elevator.floor == floor) {
+		if (elevator.floor == reqFloor) {
 			elevio.SetDoorOpenLamp(true)
 			timer_start(config.DOOR_TIMEOUT)
 			elevator.behaviour = EB_DoorOpen
 		} else {
-			elevator.requests[floor][btn] = 1
+			elevator.requests[reqFloor][reqBtn] = 1
+			elevio.SetButtonLamp(reqBtn, reqFloor, true)
 			elevator.dirn = request_chooseDirection()
 			elevio.SetMotorDirection(elevator.dirn)
 			elevator.behaviour = EB_Moving
@@ -51,8 +56,6 @@ func fsm_onRequestButtonPress(floor int, btn elevio.ButtonType) {
 	default:
 
 	}
-	setAllLights()
-
 }
 
 func fsm_onFloorArrival(newFloor int) {
@@ -67,7 +70,7 @@ func fsm_onFloorArrival(newFloor int) {
 			elevio.SetDoorOpenLamp(true)
 			elevator = request_clearAtCurrentFloor()
 			timer_start(config.DOOR_TIMEOUT)
-			setAllLights()
+			//setAllLights()
 			elevator.behaviour = EB_DoorOpen
 		}
 	default:
