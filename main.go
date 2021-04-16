@@ -5,13 +5,13 @@ import (
 	// "time"
 	"elevatorproject/config"
 	// "./network/tcp"
-	"elevatorproject/Networking"
+	"elevatorproject/networking"
 	// "./test"
 )
 
 func main() {
 	fmt.Println("Number of floors:", config.N_FLOORS);
-	Networking.Init()
+	networking.Init()
 	// Networking.ReadOnce()
 	// go test.Test()
 	// go test.Test()
