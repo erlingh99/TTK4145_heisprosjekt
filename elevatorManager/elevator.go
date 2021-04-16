@@ -18,4 +18,5 @@ type Elevator struct {
 	requests  [config.N_FLOORS][config.N_BUTTONS]int
 	behaviour ElevatorBehaviour
 	dirn      elevio.MotorDirection
+	obstruction bool
 }

@@ -17,39 +17,41 @@ func ElevatorManager() {
 	drvFloors  := make(chan int)
 	drvObstr   := make(chan bool)
 	drvStop    := make(chan bool)
+	
 
 	go elevio.PollButtons(drvButtons)
 	go elevio.PollFloorSensor(drvFloors)
 	go elevio.PollObstructionSwitch(drvObstr)
 	go elevio.PollStopButton(drvStop)
-	var prevRequests [config.N_FLOORS][config.N_BUTTONS]int
-	var prevFloorSensor = -1
+
     for {
-		if (timer_timedOut()) {
+		if timer_timedOut() {
 			fmt.Println("DOOR TIME OUT")
 			fsm_onDoorTimeout()
 		}
         select {
-        case v := <- drvButtons:
-			fmt.Println("Button pressed")
-			if (prevRequests[v.Floor][v.Button] == 0) {
+			case v := <- drvButtons:
+				fmt.Println("Button pressed")
 				fsm_onRequestButtonPress(v.Floor, v.Button)
-			}
-            prevRequests[v.Floor][v.Button] = 1
-            
-        case f := <- drvFloors:
-            if (f != -1 && f != prevFloorSensor) {
+				fmt.Println(elevator.requests)
+				
+			case f := <- drvFloors:
 				fmt.Println("Hit floor")
 				fsm_onFloorArrival(f)
-				prevFloorSensor = f
-			}
-            
-            
-        // case a := <- drvObstr:
-            
-        // case a := <- drvStop:
+		
+			case b := <- drvObstr:
+				elevator.obstruction = b
+				fmt.Println(b)
+
+        //case b := <- drvStop:
+
 		default:
         }
 		time.Sleep(config.POLLRATE)
+
+		if elevator.obstruction && elevator.behaviour == EB_DoorOpen{
+			timer_start(config.DOOR_TIMEOUT)
+		}
+		
     }
 }

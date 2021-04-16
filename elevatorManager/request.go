@@ -54,7 +54,7 @@ func request_chooseDirection() elevio.MotorDirection{
 		}
 	case elevio.MD_Stop:  
 		if (request_below()) {
-			return elevio.MD_Up
+			return elevio.MD_Down
 		} else if (request_above()) {
 			return elevio.MD_Up
 		} else {

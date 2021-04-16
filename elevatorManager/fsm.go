@@ -8,8 +8,10 @@ import (
 )
 
 
-var elevator = Elevator{floor: -1, behaviour: EB_Idle,
-			 dirn: elevio.MD_Stop}
+var elevator = Elevator{floor: 		-1, 
+						behaviour: 	EB_Idle,
+			 			dirn: 		elevio.MD_Stop,
+						obstruction:false}
 
 func setAllLights() {
 	for floor := 0; floor < config.N_FLOORS; floor++ {
