@@ -24,10 +24,17 @@ var MasterAddress net.Addr
 func Init() {
 	// go SpamChannel(sendNumChan)
 	fmt.Println("Init Networking")
-	CreateSendIntChannel(config.LISTEN_PORT)
-	CreateRecvIntChannel(config.CONNECT_ADDR, config.CONNECT_PORT)
-	go BroadcastMyIp(config.BROADCAST_PORT)
-	go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	// CreateSendIntChannel(config.LISTEN_PORT)
+	// CreateRecvIntChannel(config.CONNECT_ADDR, config.CONNECT_PORT)
+	// go BroadcastMyIp(config.BROADCAST_PORT)
+	// go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	go bcast.AddressReceiver(config.BROADCAST_PORT, addrRecvChannel, connectPortRecvChannel)
+	AddrRecvLastTime = time.Now()
+	// go AcceptIncomingConnections()
+	errChan := make(chan error)
+	go MasterListener(NextOpenPort, )
+	go TimeoutController()
+	go ChannelReader()
 }
 
 func NetworkingMainThread() {
@@ -44,9 +51,24 @@ func NetworkingMainThread() {
 			// addrString := tcpAddr.IP.String()
 	
 			// Short way:
-			addrString := addr.(*net.UDPAddr).IP.String()
-			fmt.Println("Recieved broadcast:", addrString)
-			MasterAddress = addr
+			// addrString := addr.(*net.UDPAddr).IP.String()
+			// fmt.Println("Recieved broadcast in Networking main thread:", addrString)
+			if !IsItMyAddress(addr.(*net.UDPAddr)) {
+				fmt.Println("There is another master at", addr)
+				AddrRecvLastTime = time.Now()
+				MasterAddress = addr
+				MasterIP = addr.(*net.UDPAddr).IP.String()
+				iAmMaster = false
+				channel := make(chan string)
+				go ConnectSendChannelToMaster(channel)
+				go func() {
+					fmt.Println("Sender Halla!")
+					time.Sleep(time.Second)
+					channel <- "Halla!"
+				}()
+			}
+		case port := <- connectPortRecvChannel:
+			ConnectPort = port
 		}
 
 		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
