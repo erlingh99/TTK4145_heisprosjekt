@@ -8,7 +8,7 @@ import (
 
 type ElevatorBehaviour int
 
-const ( //hva med STOPPED
+const (
 	EB_Idle     ElevatorBehaviour = 1
 	EB_DoorOpen                   = 0
 	EB_Moving                     = -1
@@ -23,8 +23,8 @@ type Elevator struct {
 }
 
 func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
-	if !e.Available {
-		return nil, fmt.Errorf("Elevator not available")
+	if e.Available { //aka ikke stopp knappen trykket inn
+		return HRAElevState{}, fmt.Errorf("Elevator not available")
 	}
 
 	h := HRAElevState{}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"../network/localip"
+	"elevatorproject/network/localip"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 //state
 type OrderHandlerState struct {
 	Mode           handlerMode
-	Id             int
+	ID             int
 	AllOrders      OrderList
 	ElevatorStates map[string]Elevator
 	LocalIP        string
@@ -34,7 +34,12 @@ func OrderHandler(orderUpdate <-chan Order,
 	aliveMsg <-chan string,
 	checkpoint <-chan OrderHandlerState,
 	connRequest <-chan string,
-	connError <-chan error) {
+	connError <-chan error,
+
+	delegateOrders chan<- map[string][][]bool,
+	IPout chan<- string,
+	IDout chan<- int,
+	backupChan chan<- OrderHandlerState) {
 
 	id := connectToMaster()
 	ip, err := localip.LocalIP()
@@ -43,19 +48,15 @@ func OrderHandler(orderUpdate <-chan Order,
 	}
 
 	handler := OrderHandlerState{
-		Id:             id,
+		ID:             id,
 		ElevatorStates: make(map[string]Elevator),
 		AllOrders:      make(OrderList, 0),
 		Mode:           SLAVE,
 		LocalIP:        ip}
 
-	//outputs
-	Orders := make(chan Order)
-	IPout := make(chan string)
-	IDout := make(chan int)
-	backupChan := make(chan OrderHandlerState)
-
 	masterTimeoutTimer := time.NewTimer(IDLE_CONN_TIMEOUT * time.Millisecond)
+
+	IPoutTicker := time.NewTicker(50 * time.Millisecond)
 
 	for {
 		switch handler.Mode {
@@ -68,8 +69,8 @@ func OrderHandler(orderUpdate <-chan Order,
 				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 
 			case <-masterTimeoutTimer.C: //master has disconnected
-				handler.Id--
-				if handler.Id == 0 { //should prob find soemthing else
+				handler.ID--
+				if handler.ID == 0 { //should prob find soemthing else
 					handler.Mode = MASTER
 				} else {
 					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
@@ -93,51 +94,68 @@ func OrderHandler(orderUpdate <-chan Order,
 					}
 				}
 			case msg := <-aliveMsg:
-				if msg != handler.LocalIP {
-					handler.Mode = SLAVE
-					if !masterTimeoutTimer.Stop() {
-						<-masterTimeoutTimer.C
-					}
-					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
-					//connect to other master msg=ip
-					//continue
+				if msg == handler.LocalIP {
+					continue
 				}
+				handler.Mode = SLAVE
+				if !masterTimeoutTimer.Stop() {
+					<-masterTimeoutTimer.C
+				}
+				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
+				//connect to other master msg=ip
+				//continue
+
 			case req := <-connRequest:
-				//add to peers, give priority
+				//add to peers, give priority/id
 			case err := <-connError:
 				//remove from peers
+			case <-IPoutTicker.C:
+				IPout <- handler.LocalIP
+				continue
 			}
 
-			//something has changed, so redistribute orders
-			redistributeOrders(handler.AllOrders, handler.ElevatorStates)
+			delegatedOrders := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
+
+			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
+			backupChan <- handler
 		}
 	}
 }
 
-func redistributeOrders(orders OrderList, elevatorStates map[string]Elevator) {
+func redistributeOrders(orders OrderList, elevatorStates map[string]Elevator) map[string][][]bool {
 	input := toHRAInput(orders, elevatorStates)
-	output, err := Distributer(input)
+	hallOrders, err := Distributer(input)
 
 	if err != nil {
 		fmt.Printf("Error distributing orders ", err)
-		return
+		return nil
 	}
 
-	for k := range elevatorStates {
-		sendToPeer(k, output[k])
+	delegatedOrders := make(map[string][][]bool)
+
+	for k, elev := range elevatorStates {
+		elevOrders := combineOrders(hallOrders[k], input.States[k].CabRequests)
+		if elevOrders != nil {
+			delegatedOrders[elev.ID] = elevOrders
+		}
 	}
+	return delegatedOrders
 }
 
-func sendToPeer(peerID string, orders [][2]bool) {
-	if orders == nil {
-		return
+func combineOrders(hallOrders [][2]bool, cabOrders []bool) [][]bool {
+	if hallOrders == nil || cabOrders == nil {
+		return nil
 	}
 
-	//network stuff
+	combinedOrders := [][]bool{}
+	for f, v := range cabOrders {
+		combinedOrders[f] = append(hallOrders[f][:], v)
+	}
+	return combinedOrders
 }
 
-func connectToMaster() int {
-
+func connectToMaster() error {
+	return fmt.Errorf("Not implemented yet")
 }
 
 type HRAInput struct {
