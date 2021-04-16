@@ -4,7 +4,7 @@ import (
 	. "elevatorproject/elevatorManager"
 	"fmt"
 	"time"
-
+	"elevatorproject/network/peer"
 	"elevatorproject/network/localip"
 )
 
@@ -35,6 +35,7 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 					checkpoint 			<-chan OrderHandlerState,
 					connRequest 		<-chan string,
 					connError 			<-chan error,
+					peerUpdate			<-chan peer.PeerUpdate,
 
 					delegateOrders 		chan<- map[string][][]bool,
 					IPout 				chan<- string,
@@ -74,6 +75,11 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 				handler.ElevatorStates = cp.ElevatorStates
 			case <-connError:
 				handler.Mode = MASTER
+			case p<-peerUpdate:
+				fmt.Printf("Peer update:\n")
+				fmt.Printf("  Peers:    %q\n", p.Peers)
+				fmt.Printf("  New:      %q\n", p.New)
+				fmt.Printf("  Lost:     %q\n", p.Lost)
 			}
 
 		case MASTER:
@@ -85,6 +91,7 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 					if e.ID == newState.ID {
 						handler.ElevatorStates[k] = e
 					}
+					
 				}
 			case msg := <-aliveMsg:
 				if msg == handler.LocalIP {
@@ -105,6 +112,13 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 			case <-IPoutTicker.C:
 				IPout <- handler.LocalIP
 				continue
+			case p<-peerUpdate:
+				fmt.Printf("Peer update:\n")
+				fmt.Printf("  Peers:    %q\n", p.Peers)
+				fmt.Printf("  New:      %q\n", p.New)
+				fmt.Printf("  Lost:     %q\n", p.Lost)
+
+				//add to elevator map
 			}
 
 			delegatedOrders := redistributeOrders(handler.AllOrders, handler.ElevatorStates)

@@ -14,6 +14,8 @@ const POLLRATE = 25 * time.Millisecond
 const CONNECT_ADDR = "192.168.1.176"
 const CONNECT_PORT = 20002
 
+const PEER_PORT =  20005
+
 const LISTEN_PORT = 20002
 
 const BROADCAST_PORT = 20001

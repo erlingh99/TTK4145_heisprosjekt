@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	// "time"
-	"elevatorproject/elevatorManager"
+	. "elevatorproject/elevatorManager"
+	. "elevatorproject/orderHandler"
 	"elevatorproject/driver-go/elevio"
 	"elevatorproject/config"
-	// "./network/tcp"
+	"elevatorproject/network/peers"
 	"elevatorproject/networking"
 	// "./test"
 )
@@ -25,11 +26,27 @@ func main() {
 	chan4 := make(chan ElevState)
 	chan5 := make(chan OrderHandlerState)
 
+
+	var elevID string
+	flag.Var(&elevID, "n", "Name of elevator")
+
+	if elevID == nil {
+		elevID, err = localip.LocalIP()
+	}
+
+	
+
+	availabilityChan := make(chan bool)
+	peerUpdateChannel := make(chan peers.PeerUpdate)
+
+	go peers.Transmitter(config.PEER_PORT, elevID,availabilityChan)
+	go peers.Receiver(config.PEER_PORT, peerUpdateChannel)
+
 	// Start orderHandler
-	go orderHandler.Init(chan1, chan2, chan3)
+	go OrderHandler(chan1, chan2, chan3, peerUpdateChannel)
 
 	// Start elevatorManager
-	go elevatorManager.Init(chan4, chan5)
+	go ElevatorManager(chan4, chan5, elevID)
 
 	// Start networking
 	go networking.Init(chan1, chan2, chan3, chan4, chan5)
