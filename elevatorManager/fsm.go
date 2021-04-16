@@ -8,31 +8,31 @@ import (
 )
 
 
-var Elevator elevator
+var elevator = Elevator{floor: -1, behaviour: EB_Idle,
+			 dirn: elevio.MD_Stop}
 
-func setAllLights(Elevator es) {
-	for (floor := 0; floor < N_FLOORS; floor++) {
-		for (btn := elevio.ButtonType(0); btn < 3; btn++) {
-			elevio.SetButtonLamp(b, f, true)
+func setAllLights() {
+	for floor := 0; floor < config.N_FLOORS; floor++ {
+		for btn := elevio.ButtonType(0); btn < 3; btn++ {
+			elevio.SetButtonLamp(btn, floor, true)
 		}
 	}
 }
 
 func fsm_onInitBetweenFloor() {
-	SetMotorDirection(MD_Down)
-	elevator.dirn = MD_Down
+	elevio.SetMotorDirection(elevio.MD_Down)
+	elevator.dirn = elevio.MD_Down
 	elevator.behaviour = EB_Moving
 }
 
-func fsm_onRequestButtonPress(int floor, ButtonType btn) {
+func fsm_onRequestButtonPress(floor int, btn elevio.ButtonType) {
 	//ADD printing for debug
 
 	switch(elevator.behaviour) {
 	case EB_DoorOpen:
 		if (elevator.floor == floor) {
 			timer_start(config.DOOR_TIMEOUT)
-		}
-		else {
+		} else {
 			elevator.requests[floor][btn] = 1
 		}
 	case EB_Moving:
@@ -42,33 +42,32 @@ func fsm_onRequestButtonPress(int floor, ButtonType btn) {
 			elevio.SetDoorOpenLamp(true)
 			timer_start(config.DOOR_TIMEOUT)
 			elevator.behaviour = EB_DoorOpen
-		}
-		else {
+		} else {
 			elevator.requests[floor][btn] = 1
-			elevator.dirn = request_chooseDirection(elevator)
-			elevio.MotorDirection(elevator.dirn)
+			elevator.dirn = request_chooseDirection()
+			elevio.SetMotorDirection(elevator.dirn)
 			elevator.behaviour = EB_Moving
 		}
 	default:
 
 	}
-	setAllLights(elevator)
+	setAllLights()
 
 }
 
-func fsm_onFloorArrival(int newFloor) {
+func fsm_onFloorArrival(newFloor int) {
 
 	elevator.floor = newFloor
 	elevio.SetFloorIndicator(elevator.floor)
 
 	switch(elevator.behaviour) {
 	case EB_Moving:
-		if(request_shouldStop(elevator)) {
-			elevio.SetMotorDirection(MD_Stop)
+		if(request_shouldStop()) {
+			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
-			elevator = request_clearAtCurrentFloor(elevator)
+			elevator = request_clearAtCurrentFloor()
 			timer_start(config.DOOR_TIMEOUT)
-			setAllLights(elevator)
+			setAllLights()
 			elevator.behaviour = EB_DoorOpen
 		}
 	default:
@@ -80,15 +79,14 @@ func fsm_onDoorTimeout() {
 
 	switch (elevator.behaviour) {
 	case EB_DoorOpen:
-		elevator.dirn = request_chooseDirection(elevator)
+		elevator.dirn = request_chooseDirection()
 
 		elevio.SetDoorOpenLamp(false)
-		elevio.SetMotorDirection(elevator.drin)
+		elevio.SetMotorDirection(elevator.dirn)
 
-		if (elevator.dirn == MD_Stop) {
+		if (elevator.dirn == elevio.MD_Stop) {
 			elevator.behaviour = EB_Idle
-		}
-		else {
+		} else {
 			elevator.behaviour = EB_Moving
 		}
 	default:

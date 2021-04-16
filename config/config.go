@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-var N_FLOORS = 3
-var N_BUTTONS = 3
-var DOOR_TIMEOUT = 3 * time.Second
-var POLLRATE = 25 * time.Millisecond
+const N_FLOORS = 4
+const N_BUTTONS = 3
+const DOOR_TIMEOUT = 3 * time.Second
+const POLLRATE = 25 * time.Millisecond
 
 
 const CONNECT_ADDR = "192.168.1.176"

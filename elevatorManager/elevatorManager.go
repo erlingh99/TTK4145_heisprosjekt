@@ -4,13 +4,12 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
 	"fmt"
-	"elevatorproject/config"
+	"time"
 )
 
-func elevatorManager() {
-	fmt.Println(("Started"))
-
-	if elevio.PollFloorSensor {
+func ElevatorManager() {
+	fmt.Println(("Elevator Manager started"))
+	if elevator.floor== -1 {
 		fsm_onInitBetweenFloor()
 	}
 
@@ -27,28 +26,29 @@ func elevatorManager() {
 	var prevFloorSensor int
     for {
         select {
-        case v := <- drv_buttons:
+        case v := <- drvButtons:
 			fmt.Println("Button pressed")
-			if (a != prev[v.Floor][v.Button]) {
+			if (prevRequests[v.Floor][v.Button] == 0) {
 				fsm_onRequestButtonPress(v.Floor, v.Button)
 			}
-            prev[v.Floor][v.Button] = 1
+            prevRequests[v.Floor][v.Button] = 1
             
-        case f := <- drv_floors:
+        case f := <- drvFloors:
             if (f != -1 && f != prevFloorSensor) {
-				fsm_onFloorArrival(f)
 				fmt.Println("Hit floor")
+				fsm_onFloorArrival(f)
 			}
             
             
-        case a := <- drv_obstr:
+        // case a := <- drvObstr:
             
-        case a := <- drv_stop:
+        // case a := <- drvStop:
         }
 
 	
 		if (timer_timedOut()) {
 			fsm_onDoorTimeout()
 		}
+		time.Sleep(config.POLLRATE)
     }
 }
