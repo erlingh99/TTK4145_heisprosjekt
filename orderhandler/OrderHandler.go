@@ -29,30 +29,28 @@ type OrderHandlerState struct {
 	LocalIP        string
 }
 
-func OrderHandler(orderUpdate <-chan Order,
-	elevatorStateUpdate <-chan Elevator,
-	aliveMsg <-chan string,
-	checkpoint <-chan OrderHandlerState,
-	connRequest <-chan string,
-	connError <-chan error,
+func OrderHandler(	orderUpdate 		<-chan Order,
+					elevatorStateUpdate <-chan Elevator,
+					aliveMsg 			<-chan string,
+					checkpoint 			<-chan OrderHandlerState,
+					connRequest 		<-chan string,
+					connError 			<-chan error,
 
-	delegateOrders chan<- map[string][][]bool,
-	IPout chan<- string,
-	IDout chan<- int,
-	backupChan chan<- OrderHandlerState) {
+					delegateOrders 		chan<- map[string][][]bool,
+					IPout 				chan<- string,
+					backupChan 			chan<- OrderHandlerState) {
 
-	id := connectToMaster()
+	err := connectToMaster()
 	ip, err := localip.LocalIP()
 	if err != nil {
 		fmt.Printf("Error no internet connection: ", err)
 	}
 
 	handler := OrderHandlerState{
-		ID:             id,
-		ElevatorStates: make(map[string]Elevator),
-		AllOrders:      make(OrderList, 0),
-		Mode:           SLAVE,
-		LocalIP:        ip}
+				ElevatorStates: make(map[string]Elevator),
+				AllOrders:      make(OrderList, 0),
+				Mode:           SLAVE,
+				LocalIP:        ip}
 
 	masterTimeoutTimer := time.NewTimer(IDLE_CONN_TIMEOUT * time.Millisecond)
 
@@ -69,12 +67,7 @@ func OrderHandler(orderUpdate <-chan Order,
 				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 
 			case <-masterTimeoutTimer.C: //master has disconnected
-				handler.ID--
-				if handler.ID == 0 { //should prob find soemthing else
-					handler.Mode = MASTER
-				} else {
-					masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
-				}
+				handler.Mode = MASTER
 
 			case cp := <-checkpoint: //should it always be accepted? ID check
 				handler.AllOrders = cp.AllOrders
