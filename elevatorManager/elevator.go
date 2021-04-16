@@ -3,7 +3,7 @@ package elevatorManager
 import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
-	"fmt"
+	
 )
 
 type ElevatorBehaviour int
@@ -24,12 +24,12 @@ type Elevator struct {
 }
 
 func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
-	if e.Available { //aka ikke stopp knappen trykket inn
-		return HRAElevState{}, fmt.Errorf("Elevator not available")
-	}
+	//if e.Available { //aka ikke stopp knappen trykket inn
+	//	return HRAElevState{}, fmt.Errorf("Elevator not available")
+	//}
 
 	h := HRAElevState{}
-	switch e.Behaviour {
+	switch e.behaviour {
 	case EB_Idle:
 		h.Behavior = "idle"
 	case EB_DoorOpen:
@@ -38,7 +38,7 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 		h.Behavior = "moving"
 	}
 
-	switch e.Dirn {
+	switch e.dirn {
 	case elevio.MD_Up:
 		h.Direction = "up"
 	case elevio.MD_Stop:
@@ -46,7 +46,7 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 	case elevio.MD_Down:
 		h.Direction = "down"
 	}
-	h.Floor = e.Floor
+	h.Floor = e.floor
 	h.CabRequests = cabOrders
 
 	return h, nil
@@ -57,5 +57,4 @@ type HRAElevState struct {
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
 	CabRequests []bool `json:"cabRequests"`
-
 }

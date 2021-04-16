@@ -5,9 +5,10 @@ import (
 	"net"
 	"sync"
 	"time"
+	"elevatorproject/config"
 )
 
-const _pollRate = 20 * time.Millisecond
+const _pollRate = config.POLLRATE
 
 var _initialized bool = false
 var _numFloors int = config.N_FLOORS

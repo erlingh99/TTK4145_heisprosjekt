@@ -82,7 +82,7 @@ func fsm_onFloorArrival(newFloor int) {
 
 func fsm_onDoorTimeout() {
 
-	switch elevator.Behaviour {
+	switch elevator.behaviour {
 	case EB_DoorOpen:
 		elevator.dirn = request_chooseDirection()
 
