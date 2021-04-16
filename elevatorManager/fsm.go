@@ -8,10 +8,10 @@ import (
 )
 
 
-var elevator = Elevator{floor: 		-1, 
-						behaviour: 	EB_Idle,
-			 			dirn: 		elevio.MD_Stop,
-						obstruction:false}
+var elevator = Elevator{Floor: 		-1, 
+						Behaviour: 	EB_Idle,
+			 			Dirn: 		elevio.MD_Stop,
+						Obstruction:false}
 
 func setAllLights() {
 	for floor := 0; floor < config.N_FLOORS; floor++ {
@@ -23,37 +23,37 @@ func setAllLights() {
 
 func fsm_onInitBetweenFloor() {
 	elevio.SetMotorDirection(elevio.MD_Down)
-	elevator.dirn = elevio.MD_Down
-	elevator.behaviour = EB_Moving
+	elevator.Dirn = elevio.MD_Down
+	elevator.Behaviour = EB_Moving
 }
 
 func fsm_onRequestButtonPress(reqFloor int, reqBtn elevio.ButtonType) {
 	//ADD printing for debug
 
-	switch elevator.behaviour {
+	switch elevator.Behaviour {
 	case EB_DoorOpen:
-		if (elevator.floor == reqFloor) {
+		if (elevator.Floor == reqFloor) {
 			timer_start(config.DOOR_TIMEOUT)
 		} else {
-			elevator.requests[reqFloor][reqBtn] = 1
+			elevator.Requests[reqFloor][reqBtn] = 1
 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
 		}
 	
 	case EB_Moving:
-		elevator.requests[reqFloor][reqBtn] = 1
+		elevator.Requests[reqFloor][reqBtn] = 1
 		elevio.SetButtonLamp(reqBtn, reqFloor, true)
 	
 	case EB_Idle:
-		if (elevator.floor == reqFloor) {
+		if (elevator.Floor == reqFloor) {
 			elevio.SetDoorOpenLamp(true)
 			timer_start(config.DOOR_TIMEOUT)
-			elevator.behaviour = EB_DoorOpen
+			elevator.Behaviour = EB_DoorOpen
 		} else {
-			elevator.requests[reqFloor][reqBtn] = 1
+			elevator.Requests[reqFloor][reqBtn] = 1
 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
-			elevator.dirn = request_chooseDirection()
-			elevio.SetMotorDirection(elevator.dirn)
-			elevator.behaviour = EB_Moving
+			elevator.Dirn = request_chooseDirection()
+			elevio.SetMotorDirection(elevator.Dirn)
+			elevator.Behaviour = EB_Moving
 		}
 	default:
 
@@ -62,10 +62,10 @@ func fsm_onRequestButtonPress(reqFloor int, reqBtn elevio.ButtonType) {
 
 func fsm_onFloorArrival(newFloor int) {
 
-	elevator.floor = newFloor
-	elevio.SetFloorIndicator(elevator.floor)
+	elevator.Floor = newFloor
+	elevio.SetFloorIndicator(elevator.Floor)
 
-	switch elevator.behaviour {
+	switch elevator.Behaviour {
 	case EB_Moving:
 		if(request_shouldStop()) {
 			elevio.SetMotorDirection(elevio.MD_Stop)
@@ -73,7 +73,7 @@ func fsm_onFloorArrival(newFloor int) {
 			elevator = request_clearAtCurrentFloor()
 			timer_start(config.DOOR_TIMEOUT)
 			//setAllLights()
-			elevator.behaviour = EB_DoorOpen
+			elevator.Behaviour = EB_DoorOpen
 		}
 	default:
 	}
@@ -82,17 +82,17 @@ func fsm_onFloorArrival(newFloor int) {
 
 func fsm_onDoorTimeout() {
 
-	switch elevator.behaviour {
+	switch elevator.Behaviour {
 	case EB_DoorOpen:
-		elevator.dirn = request_chooseDirection()
+		elevator.Dirn = request_chooseDirection()
 
 		elevio.SetDoorOpenLamp(false)
-		elevio.SetMotorDirection(elevator.dirn)
+		elevio.SetMotorDirection(elevator.Dirn)
 
-		if (elevator.dirn == elevio.MD_Stop) {
-			elevator.behaviour = EB_Idle
+		if (elevator.Dirn == elevio.MD_Stop) {
+			elevator.Behaviour = EB_Idle
 		} else {
-			elevator.behaviour = EB_Moving
+			elevator.Behaviour = EB_Moving
 		}
 	default:
 	}

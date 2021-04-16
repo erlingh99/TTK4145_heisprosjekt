@@ -2,12 +2,12 @@ package orders
 
 type OrderList []Order
 
-func (ol OrderList) ClearFinishedOrders() {
-	for i := 0; i < len(ol); i++ {
-		if ol[i].OrderCanBeDeleted() {
-			ol[i] = ol[len(ol)-1] //replace it with the last order since order is unimportant
-			ol = ol[:len(ol)-1]   //shave off the last element
-			i--                   //have to check this index again since it is now a different order
+func (ol *OrderList) ClearFinishedOrders() {
+	for i := 0; i < len(*ol); i++ {
+		if (*ol)[i].OrderCanBeDeleted() {
+			(*ol)[i] = (*ol)[len(*ol)-1] //replace it with the last order since order is unimportant
+			*ol = (*ol)[:len(*ol)-1]     //shave off the last element
+			i--                          //have to check this index again since it is now a different order
 		}
 	}
 }
@@ -23,14 +23,14 @@ func (ol OrderList) FindAllUnassignedAndTimedoutOrders() OrderList {
 	return subList
 }
 
-func (ol OrderList) OrderUpdate(o Order) {
-	for i, order := range ol {
+func (ol *OrderList) OrderUpdate(o Order) {
+	for i, order := range *ol {
 		if order.ID == o.ID { //orderUpdate not new
-			ol[i] = o
+			(*ol)[i] = o
 			return
 		}
 	}
-	ol = append(ol, o) //new order
+	*ol = append(*ol, o) //new order
 }
 
 //do all uncompleted orders, or leave assigned and not timed out orders alone?

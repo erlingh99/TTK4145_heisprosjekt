@@ -15,11 +15,11 @@ const (
 )
 
 type Elevator struct {
-	floor     		int
-	requests  		[config.N_FLOORS][config.N_BUTTONS]int
-	behaviour 		ElevatorBehaviour
-	dirn      		elevio.MotorDirection
-	obstruction 	bool
+	Floor     		int
+	Requests  		[config.N_FLOORS][config.N_BUTTONS]int
+	Behaviour 		ElevatorBehaviour
+	Dirn      		elevio.MotorDirection
+	Obstruction 	bool
 	ID        		string //unique identifier
 }
 
@@ -29,7 +29,7 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 	//}
 
 	h := HRAElevState{}
-	switch e.behaviour {
+	switch e.Behaviour {
 	case EB_Idle:
 		h.Behavior = "idle"
 	case EB_DoorOpen:
@@ -38,7 +38,7 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 		h.Behavior = "moving"
 	}
 
-	switch e.dirn {
+	switch e.Dirn {
 	case elevio.MD_Up:
 		h.Direction = "up"
 	case elevio.MD_Stop:
@@ -46,7 +46,7 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 	case elevio.MD_Down:
 		h.Direction = "down"
 	}
-	h.Floor = e.floor
+	h.Floor = e.Floor
 	h.CabRequests = cabOrders
 
 	return h, nil

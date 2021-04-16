@@ -8,9 +8,9 @@ import (
 
 //Checking for request below current floor, if there is return true
 func request_above() bool {
-	for f := elevator.floor + 1; f < config.N_FLOORS; f++ {
+	for f := elevator.Floor + 1; f < config.N_FLOORS; f++ {
 		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
-			 if (elevator.requests[f][btn] != 0) {
+			 if (elevator.Requests[f][btn] != 0) {
 				 return true
 			 }
 		}
@@ -20,9 +20,9 @@ func request_above() bool {
 
 //Checking for request below current floor, if there is return true
 func request_below() bool {
-	for f := 0; f < elevator.floor; f++ {
+	for f := 0; f < elevator.Floor; f++ {
 		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
-			 if (elevator.requests[f][btn] != 0) {
+			 if (elevator.Requests[f][btn] != 0) {
 				fmt.Println("Returning true")
 				return true
 			}
@@ -34,7 +34,7 @@ func request_below() bool {
 
 //Choosing what direction the elevator should go dempendig on where the request is
 func request_chooseDirection() elevio.MotorDirection{
-	switch (elevator.dirn) {
+	switch (elevator.Dirn) {
 	case elevio.MD_Up:
 		if (request_above()) {
 			return elevio.MD_Up
@@ -66,16 +66,16 @@ func request_chooseDirection() elevio.MotorDirection{
 
 
 func request_shouldStop() bool {
-	switch (elevator.dirn) {
+	switch (elevator.Dirn) {
 	case elevio.MD_Down:
 		return (
-		(elevator.requests[elevator.floor][elevio.BT_HallDown] != 0)|| 
-		(elevator.requests[elevator.floor][elevio.BT_Cab] != 0)	    ||
+		(elevator.Requests[elevator.Floor][elevio.BT_HallDown] != 0)|| 
+		(elevator.Requests[elevator.Floor][elevio.BT_Cab] != 0)	    ||
 		!request_below() )
 	case elevio.MD_Up:
 		return (
-		(elevator.requests[elevator.floor][elevio.BT_HallUp] != 0) || 
-		(elevator.requests[elevator.floor][elevio.BT_Cab] != 0)	 ||
+		(elevator.Requests[elevator.Floor][elevio.BT_HallUp] != 0) || 
+		(elevator.Requests[elevator.Floor][elevio.BT_Cab] != 0)	 ||
 		!request_above())
 	case elevio.MD_Stop:
 	default:
@@ -88,8 +88,8 @@ func request_shouldStop() bool {
 //Asuming everyone enters a elevator, even if the elevator is going the wrong way to start with
 func request_clearAtCurrentFloor() Elevator {
 	for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
-		 elevator.requests[elevator.floor][btn] = 0
-		 elevio.SetButtonLamp(btn, elevator.floor, false)
+		 elevator.Requests[elevator.Floor][btn] = 0
+		 elevio.SetButtonLamp(btn, elevator.Floor, false)
 	}
 	return elevator
 }

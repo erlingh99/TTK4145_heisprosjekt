@@ -1,3 +1,5 @@
+// +build windows
+
 package orderHandler
 
 import (
@@ -10,20 +12,21 @@ func Distributer(input HRAInput) (map[string][][2]bool, error) {
 
 	jsonBytes, err := json.Marshal(input)
 	if err != nil {
-		fmt.Printf("json.Marshal error: ", err)
+		fmt.Printf("json.Marshal error: %v", err)
 		return nil, err
 	}
 
 	retvals, err := exec.Command("./hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
 	if err != nil {
-		fmt.Printf("exec.Command error: ", err)
+		fmt.Printf("exec.Command error: %v", err)
 		return nil, err
 	}
 
+	
 	output := make(map[string][][2]bool)
-	err := json.Unmarshal(retvals, &output)
+	err = json.Unmarshal(retvals, &output)
 	if err != nil {
-		fmt.Printf("json.Unmarshal error: ", err)
+		fmt.Printf("json.Unmarshal error: %v", err)
 		return nil, err
 	}
 

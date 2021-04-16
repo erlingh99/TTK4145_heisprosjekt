@@ -9,7 +9,7 @@ import (
 
 func ElevatorManager() {
 	fmt.Println(("Elevator Manager started"))
-	if elevator.floor== -1 {
+	if elevator.Floor== -1 {
 		fsm_onInitBetweenFloor()
 	}
 
@@ -34,14 +34,14 @@ func ElevatorManager() {
 			case v := <- drvButtons:
 				fmt.Println("Button pressed")
 				fsm_onRequestButtonPress(v.Floor, v.Button)
-				fmt.Println(elevator.requests)
+				fmt.Println(elevator.Requests)
 				
 			case f := <- drvFloors:
 				fmt.Println("Hit floor")
 				fsm_onFloorArrival(f)
 		
 			case b := <- drvObstr:
-				elevator.obstruction = b
+				elevator.Obstruction = b
 				fmt.Println(b)
 
         //case b := <- drvStop:
@@ -50,7 +50,7 @@ func ElevatorManager() {
         }
 		time.Sleep(config.POLLRATE)
 
-		if elevator.obstruction && elevator.behaviour == EB_DoorOpen{
+		if elevator.Obstruction && elevator.Behaviour == EB_DoorOpen{
 			timer_start(config.DOOR_TIMEOUT)
 		}
 		

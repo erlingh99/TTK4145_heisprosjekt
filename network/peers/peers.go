@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"../conn"
+	"elevatorproject/network/conn"
 )
 
 type PeerUpdate struct {
@@ -65,7 +65,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 		// Removing dead connection
 		p.Lost = make([]string, 0)
 		for k, v := range lastSeen {
-			if time.Now().Sub(v) > timeout {
+			if time.Since(v) > timeout {
 				updated = true
 				p.Lost = append(p.Lost, k)
 				delete(lastSeen, k)

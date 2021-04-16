@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fmt"
+
 	// "time"
-	. "elevatorproject/elevatorManager"
-	. "elevatorproject/orderHandler"
-	"elevatorproject/driver-go/elevio"
 	"elevatorproject/config"
+	. "elevatorproject/elevatorManager"
+	"elevatorproject/network/localip"
 	"elevatorproject/network/peers"
 	"elevatorproject/networking"
-	// "./test"
+	. "elevatorproject/orderHandler"
+	"flag"
+	"fmt"
+	"os"
 )
 
 func main() {
@@ -26,20 +28,27 @@ func main() {
 	chan4 := make(chan ElevState)
 	chan5 := make(chan OrderHandlerState)
 
+	var id string
+	flag.StringVar(&id, "id", "", "id of this peer")
+	flag.Parse()
 
-	var elevID string
-	flag.Var(&elevID, "n", "Name of elevator")
-
-	if elevID == nil {
-		elevID, err = localip.LocalIP()
+	// ... or alternatively, we can use the local IP address.
+	// (But since we can run multiple programs on the same PC, we also append the
+	//  process ID)
+	if id == "" {
+		localIP, err := localip.LocalIP()
+		if err != nil {
+			fmt.Println(err)
+			localIP = "DISCONNECTED"
+		}
+		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
-
 	
 
 	availabilityChan := make(chan bool)
 	peerUpdateChannel := make(chan peers.PeerUpdate)
 
-	go peers.Transmitter(config.PEER_PORT, elevID,availabilityChan)
+	go peers.Transmitter(config.PEER_PORT, id ,availabilityChan)
 	go peers.Receiver(config.PEER_PORT, peerUpdateChannel)
 
 	// Start orderHandler

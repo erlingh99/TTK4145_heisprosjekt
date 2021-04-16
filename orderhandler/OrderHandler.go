@@ -2,10 +2,11 @@ package orderHandler
 
 import (
 	. "elevatorproject/elevatorManager"
+	"elevatorproject/orders"
+	"elevatorproject/network/localip"
+	"elevatorproject/network/peers"
 	"fmt"
 	"time"
-	"elevatorproject/network/peer"
-	"elevatorproject/network/localip"
 )
 
 const (
@@ -24,32 +25,33 @@ const (
 type OrderHandlerState struct {
 	Mode           handlerMode
 	ID             int
-	AllOrders      OrderList
+	AllOrders      orders.OrderList
 	ElevatorStates map[string]Elevator
 	LocalIP        string
 }
 
-func OrderHandler(	orderUpdate 		<-chan Order,
+func OrderHandler(	orderUpdate 		<-chan orders.Order,
 					elevatorStateUpdate <-chan Elevator,
 					aliveMsg 			<-chan string,
 					checkpoint 			<-chan OrderHandlerState,
 					connRequest 		<-chan string,
 					connError 			<-chan error,
-					peerUpdate			<-chan peer.PeerUpdate,
+					peerUpdate			<-chan peers.PeerUpdate,
 
 					delegateOrders 		chan<- map[string][][]bool,
 					IPout 				chan<- string,
 					backupChan 			chan<- OrderHandlerState) {
 
-	err := connectToMaster()
+	//err := connectToMaster()
 	ip, err := localip.LocalIP()
+
 	if err != nil {
-		fmt.Printf("Error no internet connection: ", err)
+		fmt.Printf("Error no internet connection: %e", err)
 	}
 
 	handler := OrderHandlerState{
 				ElevatorStates: make(map[string]Elevator),
-				AllOrders:      make(OrderList, 0),
+				AllOrders:      make(orders.OrderList, 0),
 				Mode:           SLAVE,
 				LocalIP:        ip}
 
@@ -75,7 +77,7 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 				handler.ElevatorStates = cp.ElevatorStates
 			case <-connError:
 				handler.Mode = MASTER
-			case p<-peerUpdate:
+			case p := <-peerUpdate:
 				fmt.Printf("Peer update:\n")
 				fmt.Printf("  Peers:    %q\n", p.Peers)
 				fmt.Printf("  New:      %q\n", p.New)
@@ -105,14 +107,14 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 				//connect to other master msg=ip
 				//continue
 
-			case req := <-connRequest:
+			case <-connRequest:
 				//add to peers, give priority/id
-			case err := <-connError:
+			case <-connError:
 				//remove from peers
 			case <-IPoutTicker.C:
 				IPout <- handler.LocalIP
 				continue
-			case p<-peerUpdate:
+			case p := <-peerUpdate:
 				fmt.Printf("Peer update:\n")
 				fmt.Printf("  Peers:    %q\n", p.Peers)
 				fmt.Printf("  New:      %q\n", p.New)
@@ -129,12 +131,12 @@ func OrderHandler(	orderUpdate 		<-chan Order,
 	}
 }
 
-func redistributeOrders(orders OrderList, elevatorStates map[string]Elevator) map[string][][]bool {
+func redistributeOrders(orders orders.OrderList, elevatorStates map[string]Elevator) map[string][][]bool {
 	input := toHRAInput(orders, elevatorStates)
 	hallOrders, err := Distributer(input)
 
 	if err != nil {
-		fmt.Printf("Error distributing orders ", err)
+		fmt.Printf("Error distributing orders %e", err)
 		return nil
 	}
 
@@ -166,11 +168,11 @@ func connectToMaster() error {
 }
 
 type HRAInput struct {
-	HallOrder [][2]bool
-	States    map[string]HRAElevState
+	HallOrder [][2]bool 				`json:"hallRequests"`
+	States    map[string]HRAElevState   `json:"states"`
 }
 
-func toHRAInput(allOrders OrderList, allStates map[string]Elevator) HRAInput {
+func toHRAInput(allOrders orders.OrderList, allStates map[string]Elevator) HRAInput {
 	input := HRAInput{}
 
 	hallOrders, CabOrders := allOrders.OrderListToHRAFormat()

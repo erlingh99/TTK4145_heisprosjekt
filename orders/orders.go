@@ -1,7 +1,7 @@
 package orders
 
 import (
-	. "elevatorproject/driver-go/elevio"
+	"elevatorproject/driver-go/elevio"
 	"time"
 )
 
@@ -32,10 +32,10 @@ type Order struct {
 	Destination        floor
 	Timestamp          time.Time
 	AssignedElevatorID string
-	ID                 string
+	ID                 int
 }
 
-func NewOrder(be ButtonEvent, elevID string) Order {
+func NewOrder(be elevio.ButtonEvent, elevID string) Order {
 	o := Order{
 		Orderstate:  UNASSIGNED,
 		Ordertype:   OrderType(be.Button),
@@ -44,7 +44,7 @@ func NewOrder(be ButtonEvent, elevID string) Order {
 		ID:          numberOfOrders}
 
 	numberOfOrders++
-	if be.Button == BT_Cab {
+	if be.Button == elevio.BT_Cab {
 		o.AssignedElevatorID = elevID
 		o.Orderstate = ASSIGNED
 	}
@@ -56,5 +56,5 @@ func (o Order) OrderCanBeDeleted() bool {
 }
 
 func (o Order) CheckForOrderTimeout() bool {
-	return time.Now().Sub(o.Timestamp).Milliseconds() > ORDER_MAX_AGE && !o.OrderCanBeDeleted()
+	return time.Since(o.Timestamp).Milliseconds() > ORDER_MAX_AGE && !o.OrderCanBeDeleted()
 }
