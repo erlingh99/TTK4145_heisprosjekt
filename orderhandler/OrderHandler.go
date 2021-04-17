@@ -3,8 +3,7 @@ package orderHandler
 import (
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/orders"
-	"elevatorproject/network/localip"
-	"elevatorproject/network/peers"
+	"elevatorproject/config"
 	"fmt"
 	"time"
 )
@@ -40,7 +39,7 @@ func Distributer(	ID 					string,
 					elevDisconnect 		<-chan string,				//connection lost (master responsibility)
 					//peerUpdate			<-chan peers.PeerUpdate,	
 
-					delegateOrders 		chan<- map[string][][]bool,	//master delegates to elevators
+					delegateOrders 		chan<- map[string][config.N_FLOORS][]bool,	//master delegates to elevators
 					enableIpBroadcast	chan<- bool,				//enable broadcast of ip (only master broadcasts)
 					backupChan 			chan<- DistributerState) {	//send backup to slaves
 
@@ -111,9 +110,8 @@ func Distributer(	ID 					string,
 
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
-				if _, ok := handler.ElevatorStates[elevID]; ok {
-					delete(handler.ElevatorStates, elevID)
-				}					
+				delete(handler.ElevatorStates, elevID)
+									
 			}
 
 			handler.Timestamp = time.Now()
@@ -127,7 +125,7 @@ func Distributer(	ID 					string,
 	}
 }
 
-func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) map[string][][]bool {
+func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) map[string][config.N_FLOORS][]bool {
 	input := toHRAInput(orders, elevatorStates)
 	hallOrders, err := Assigner(input)
 
@@ -136,23 +134,23 @@ func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.El
 		return nil
 	}
 
-	delegatedOrders := make(map[string][][]bool)
+	delegatedOrders := make(map[string][config.N_FLOORS][]bool)
 
 	for k, elev := range elevatorStates {
 		elevOrders := combineOrders(hallOrders[k], input.States[k].CabRequests)
-		if elevOrders != nil {
+		//if elevOrders != nil {
 			delegatedOrders[elev.ID] = elevOrders
-		}
+		//}
 	}
 	return delegatedOrders
 }
 
-func combineOrders(hallOrders [][2]bool, cabOrders []bool) [][]bool {
-	if hallOrders == nil || cabOrders == nil {
+func combineOrders(hallOrders [config.N_FLOORS][2]bool, cabOrders [config.N_FLOORS]bool) [config.N_FLOORS][]bool {
+	/*if hallOrders == nil || cabOrders == nil {
 		return nil
-	}
+	}*/
 
-	combinedOrders := [][]bool{}
+	combinedOrders := [config.N_FLOORS][]bool{}
 	for f, v := range cabOrders {
 		combinedOrders[f] = append(hallOrders[f][:], v)
 	}
@@ -164,7 +162,7 @@ func connectToMaster() error {
 }
 
 type HRAInput struct {
-	HallOrder [][2]bool 					`json:"hallRequests"`
+	HallOrder [config.N_FLOORS][2]bool 					`json:"hallRequests"`
 	States    map[string]em.HRAElevState   	`json:"states"`
 }
 

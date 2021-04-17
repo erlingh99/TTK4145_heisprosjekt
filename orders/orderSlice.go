@@ -1,5 +1,7 @@
 package orders
 
+import "elevatorproject/config"
+
 type OrderList []Order
 
 func (ol *OrderList) ClearFinishedOrders() {
@@ -34,9 +36,9 @@ func (ol *OrderList) OrderUpdate(o Order) {
 }
 
 //do all uncompleted orders, or leave assigned and not timed out orders alone?
-func (ol OrderList) OrderListToHRAFormat() ([][2]bool, map[string][]bool) {
-	hallOrders := [][2]bool{}
-	cabOrders := make(map[string][]bool)
+func (ol OrderList) OrderListToHRAFormat() ([config.N_FLOORS][2]bool, map[string][config.N_FLOORS]bool) {
+	hallOrders := [config.N_FLOORS][2]bool{}
+	cabOrders := make(map[string][config.N_FLOORS]bool)
 
 	for _, order := range ol {
 		if order.Orderstate == COMPLETED {
@@ -45,7 +47,9 @@ func (ol OrderList) OrderListToHRAFormat() ([][2]bool, map[string][]bool) {
 
 		switch order.Ordertype {
 		case CAB:
-			cabOrders[order.AssignedElevatorID][order.Destination] = true
+			cabs := cabOrders[order.AssignedElevatorID]
+			cabs[order.Destination] = true
+			cabOrders[order.AssignedElevatorID] = cabs
 		default:
 			hallOrders[order.Destination][order.Ordertype] = true
 		}

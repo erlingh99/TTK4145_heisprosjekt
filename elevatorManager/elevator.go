@@ -3,11 +3,11 @@ package elevatorManager
 import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
+	"time"
 	
 )
 
 type ElevatorBehaviour int
-
 const (
 	EB_Idle     ElevatorBehaviour = 1
 	EB_DoorOpen                   = 0
@@ -21,9 +21,10 @@ type Elevator struct {
 	Dirn      		elevio.MotorDirection
 	Obstruction 	bool
 	ID        		string //unique identifier
+	Timestamp		time.Time
 }
 
-func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
+func (e Elevator) ToHRAFormat(cabOrders [config.N_FLOORS]bool) (HRAElevState, error) {
 	//if e.Available { //aka ikke stopp knappen trykket inn
 	//	return HRAElevState{}, fmt.Errorf("Elevator not available")
 	//}
@@ -53,8 +54,8 @@ func (e Elevator) ToHRAFormat(cabOrders []bool) (HRAElevState, error) {
 }
 
 type HRAElevState struct {
-	Behavior    string `json:"behavior"`
-	Floor       int    `json:"floor"`
-	Direction   string `json:"direction"`
-	CabRequests []bool `json:"cabRequests"`
+	Behavior    string 					`json:"behavior"`
+	Floor       int    					`json:"floor"`
+	Direction   string 					`json:"direction"`
+	CabRequests [config.N_FLOORS]bool 	`json:"cabRequests"`
 }

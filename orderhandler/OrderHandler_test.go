@@ -2,11 +2,14 @@ package orderHandler
 
 import (
 	"encoding/json"
-	
+
 	"os/exec"
 	"testing"
 
-	. "elevatorproject/elevatorManager")
+	"elevatorproject/driver-go/elevio"
+	. "elevatorproject/elevatorManager"
+	"elevatorproject/orders"
+)
 
 
 func TestOrderHandler(t *testing.T) {
@@ -23,13 +26,32 @@ func TestOrderHandler(t *testing.T) {
 						Obstruction: false,
 						ID: "heis2"}
 
+
+	o1 := orders.NewOrder(elevio.ButtonEvent{Floor: 1, Button: elevio.BT_Cab}, "heis1")
+	o2 := orders.NewOrder(elevio.ButtonEvent{Floor: 3, Button: elevio.BT_Cab}, "heis2")
+	o3 := orders.NewOrder(elevio.ButtonEvent{Floor: 0, Button: elevio.BT_HallUp}, "heis1")
+	o4 := orders.NewOrder(elevio.ButtonEvent{Floor: 2, Button: elevio.BT_HallDown}, "heis2")
+	o5 := orders.NewOrder(elevio.ButtonEvent{Floor: 3, Button: elevio.BT_HallDown}, "heis1")
+	t.Log("orders created")
+	ol := orders.OrderList{o1,o2,o3,o4}
+	t.Log("list created")
+	ol.OrderUpdate(o5)
+	t.Log("list appended")
+
+
+	hall, cab := ol.OrderListToHRAFormat()
+
+	t.Log("hra created")
+
+	t.Log(cab)
+
 	st := make(map[string]HRAElevState)
 
-	st[elev1.ID], _ = elev1.ToHRAFormat([]bool{false, false, true, false})
-	st[elev2.ID], _ = elev2.ToHRAFormat([]bool{true, false, false, false})
+	st[elev1.ID], _ = elev1.ToHRAFormat(cab[elev1.ID])
+	st[elev2.ID], _ = elev2.ToHRAFormat(cab[elev2.ID])
 
 	input := HRAInput{
-		HallOrder: [][2]bool{{false, true}, {true, false}, {false, false}, {false, false}},
+		HallOrder: hall,
 		States: st,
 	}
 
@@ -44,9 +66,5 @@ func TestOrderHandler(t *testing.T) {
 	err = json.Unmarshal(retvals, &output)
 	t.Log(err)
 	
-
-	for k,v := range output {
-		t.Log(k)
-		t.Log(v)
-	}
+	t.Log(output)
 }

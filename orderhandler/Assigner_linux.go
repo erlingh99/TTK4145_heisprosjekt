@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func Assigner(input HRAInput) (map[string][][2]bool, error) {
+func Assigner(input HRAInput) (map[string][config.N_FLOORS][2]bool, error) {
 
 	jsonBytes, err := json.Marshal(input)
 	if err != nil {
@@ -23,7 +23,7 @@ func Assigner(input HRAInput) (map[string][][2]bool, error) {
 	}
 
 	
-	output := make(map[string][][2]bool)
+	output := make(map[string][config.N_FLOORS][2]bool)
 	err = json.Unmarshal(retvals, &output)
 	if err != nil {
 		fmt.Printf("json.Unmarshal error: %v", err)
