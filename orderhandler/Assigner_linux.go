@@ -1,4 +1,4 @@
-// +build windows
+// +build linux
 
 package orderHandler
 
@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func Distributer(input HRAInput) (map[string][][2]bool, error) {
+func Assigner(input HRAInput) (map[string][][2]bool, error) {
 
 	jsonBytes, err := json.Marshal(input)
 	if err != nil {
@@ -16,7 +16,7 @@ func Distributer(input HRAInput) (map[string][][2]bool, error) {
 		return nil, err
 	}
 
-	retvals, err := exec.Command("./hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
+	retvals, err := exec.Command("./hall_request_assigner/hall_request_assigner", "-i", string(jsonBytes)).Output()
 	if err != nil {
 		fmt.Printf("exec.Command error: %v", err)
 		return nil, err

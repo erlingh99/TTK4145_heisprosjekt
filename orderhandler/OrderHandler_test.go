@@ -33,7 +33,7 @@ func TestOrderHandler(t *testing.T) {
 		States: st,
 	}
 
-	jsonBytes, err := json.Marshal(input)
+	jsonBytes, _ := json.Marshal(input)
 	t.Log(string(jsonBytes))
 
 	retvals, err := exec.Command("./hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
@@ -49,9 +49,4 @@ func TestOrderHandler(t *testing.T) {
 		t.Log(k)
 		t.Log(v)
 	}
-
-
-
-	//t.Log(output[elev1.ID])
-	//t.Log(output[elev2.ID])
 }

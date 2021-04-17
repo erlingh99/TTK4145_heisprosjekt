@@ -1,7 +1,7 @@
 package orderHandler
 
 import (
-	. "elevatorproject/elevatorManager"
+	em "elevatorproject/elevatorManager"
 	"elevatorproject/orders"
 	"elevatorproject/network/localip"
 	"elevatorproject/network/peers"
@@ -14,74 +14,72 @@ const (
 	ORDER_COMPLETION_MAX_TIME = 10000 //ms, 10 sec
 )
 
-type handlerMode int
+type distributerMode int
 
 const (
-	SLAVE handlerMode = iota
+	SLAVE distributerMode = iota
 	MASTER
 )
 
 //state
-type OrderHandlerState struct {
-	Mode           handlerMode
-	ID             int
-	AllOrders      orders.OrderList
-	ElevatorStates map[string]Elevator
-	LocalIP        string
+type DistributerState struct {
+	Mode           	distributerMode
+	ID             	string
+	AllOrders      	orders.OrderList
+	ElevatorStates 	map[string]em.Elevator
+	Timestamp		time.Time
 }
 
-func OrderHandler(	orderUpdate 		<-chan orders.Order,
-					elevatorStateUpdate <-chan Elevator,
-					aliveMsg 			<-chan string,
-					checkpoint 			<-chan OrderHandlerState,
-					connRequest 		<-chan string,
-					connError 			<-chan error,
-					peerUpdate			<-chan peers.PeerUpdate,
+func Distributer(	ID 					string,
+	
+					orderUpdate 		<-chan orders.Order,		//orders from elevators
+					elevatorStateUpdate <-chan em.Elevator,			//states, from elevators
+					broadcastRx			<-chan string,				//alivemsg from master
+					checkpoint 			<-chan DistributerState,	//checkpoint from master
+					//newConnection 		<-chan string,				//new Elevator has conneceted (master responsibilty) LET NETWORK DEAL WITH
+					elevDisconnect 		<-chan string,				//connection lost (master responsibility)
+					//peerUpdate			<-chan peers.PeerUpdate,	
 
-					delegateOrders 		chan<- map[string][][]bool,
-					IPout 				chan<- string,
-					backupChan 			chan<- OrderHandlerState) {
+					delegateOrders 		chan<- map[string][][]bool,	//master delegates to elevators
+					enableIpBroadcast	chan<- bool,				//enable broadcast of ip (only master broadcasts)
+					backupChan 			chan<- DistributerState) {	//send backup to slaves
 
-	//err := connectToMaster()
-	ip, err := localip.LocalIP()
-
-	if err != nil {
-		fmt.Printf("Error no internet connection: %e", err)
-	}
-
-	handler := OrderHandlerState{
-				ElevatorStates: make(map[string]Elevator),
+	handler := DistributerState{
+				ElevatorStates: make(map[string]em.Elevator),
 				AllOrders:      make(orders.OrderList, 0),
 				Mode:           SLAVE,
-				LocalIP:        ip}
+				ID:				ID,
+				Timestamp: 		time.Now()}
 
 	masterTimeoutTimer := time.NewTimer(IDLE_CONN_TIMEOUT * time.Millisecond)
-
-	IPoutTicker := time.NewTicker(50 * time.Millisecond)
 
 	for {
 		switch handler.Mode {
 		case SLAVE:
 			select {
-			case <-aliveMsg:
+			case <-broadcastRx:
 				if !masterTimeoutTimer.Stop() {
 					<-masterTimeoutTimer.C
 				}
 				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 
 			case <-masterTimeoutTimer.C: //master has disconnected
+				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
+				enableIpBroadcast <- true
 
-			case cp := <-checkpoint: //should it always be accepted? ID check
-				handler.AllOrders = cp.AllOrders
-				handler.ElevatorStates = cp.ElevatorStates
-			case <-connError:
+			case cp := <-checkpoint:
+				if cp.Timestamp.After(handler.Timestamp) {
+					fmt.Println("checkpoint recieved")
+					handler.AllOrders = cp.AllOrders
+					handler.ElevatorStates = cp.ElevatorStates
+				}
+
+			case <-elevDisconnect:
+				fmt.Println("Error with connection to Master")
 				handler.Mode = MASTER
-			case p := <-peerUpdate:
-				fmt.Printf("Peer update:\n")
-				fmt.Printf("  Peers:    %q\n", p.Peers)
-				fmt.Printf("  New:      %q\n", p.New)
-				fmt.Printf("  Lost:     %q\n", p.Lost)
+				masterTimeoutTimer.Stop()
+				enableIpBroadcast <- true				
 			}
 
 		case MASTER:
@@ -89,17 +87,21 @@ func OrderHandler(	orderUpdate 		<-chan orders.Order,
 			case newOrder := <-orderUpdate:
 				handler.AllOrders.OrderUpdate(newOrder)
 			case newState := <-elevatorStateUpdate:
-				for k, e := range handler.ElevatorStates {
-					if e.ID == newState.ID {
-						handler.ElevatorStates[k] = e
-					}
-					
+
+				if _, exists := handler.ElevatorStates[newState.ID]; !exists {
+					fmt.Println("new elevator registered: " + newState.ID)
+					handler.ElevatorStates[newState.ID] = newState
+				} else if newState.Timestamp.After(handler.ElevatorStates[newState.ID].Timestamp) {
+					fmt.Println("elevatorState recieved " + newState.ID)
+					handler.ElevatorStates[newState.ID] = newState
 				}
-			case msg := <-aliveMsg:
-				if msg == handler.LocalIP {
+
+			case msg := <-broadcastRx: //some other master exist
+				if msg == handler.ID {
 					continue
 				}
 				handler.Mode = SLAVE
+				enableIpBroadcast <- false
 				if !masterTimeoutTimer.Stop() {
 					<-masterTimeoutTimer.C
 				}
@@ -107,36 +109,30 @@ func OrderHandler(	orderUpdate 		<-chan orders.Order,
 				//connect to other master msg=ip
 				//continue
 
-			case <-connRequest:
-				//add to peers, give priority/id
-			case <-connError:
-				//remove from peers
-			case <-IPoutTicker.C:
-				IPout <- handler.LocalIP
-				continue
-			case p := <-peerUpdate:
-				fmt.Printf("Peer update:\n")
-				fmt.Printf("  Peers:    %q\n", p.Peers)
-				fmt.Printf("  New:      %q\n", p.New)
-				fmt.Printf("  Lost:     %q\n", p.Lost)
-
-				//add to elevator map
+			case elevID := <-elevDisconnect:
+				fmt.Println("Connection error with slave " + elevID)
+				if _, ok := handler.ElevatorStates[elevID]; ok {
+					delete(handler.ElevatorStates, elevID)
+				}					
 			}
 
+			handler.Timestamp = time.Now()
 			delegatedOrders := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
 
 			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
 			backupChan <- handler
+			fmt.Println("Orders delegated, backup sent")
+			fmt.Println(delegatedOrders)
 		}
 	}
 }
 
-func redistributeOrders(orders orders.OrderList, elevatorStates map[string]Elevator) map[string][][]bool {
+func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) map[string][][]bool {
 	input := toHRAInput(orders, elevatorStates)
-	hallOrders, err := Distributer(input)
+	hallOrders, err := Assigner(input)
 
 	if err != nil {
-		fmt.Printf("Error distributing orders %e", err)
+		fmt.Printf("Error distributing orders: %e", err)
 		return nil
 	}
 
@@ -168,11 +164,11 @@ func connectToMaster() error {
 }
 
 type HRAInput struct {
-	HallOrder [][2]bool 				`json:"hallRequests"`
-	States    map[string]HRAElevState   `json:"states"`
+	HallOrder [][2]bool 					`json:"hallRequests"`
+	States    map[string]em.HRAElevState   	`json:"states"`
 }
 
-func toHRAInput(allOrders orders.OrderList, allStates map[string]Elevator) HRAInput {
+func toHRAInput(allOrders orders.OrderList, allStates map[string]em.Elevator) HRAInput {
 	input := HRAInput{}
 
 	hallOrders, CabOrders := allOrders.OrderListToHRAFormat()
@@ -186,3 +182,9 @@ func toHRAInput(allOrders orders.OrderList, allStates map[string]Elevator) HRAIn
 	}
 	return input
 }
+
+
+//TODO
+
+//input ouput
+//connections
