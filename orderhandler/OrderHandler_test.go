@@ -47,8 +47,8 @@ func TestOrderHandler(t *testing.T) {
 
 	st := make(map[string]HRAElevState)
 
-	st[elev1.ID], _ = elev1.ToHRAFormat(cab[elev1.ID])
-	st[elev2.ID], _ = elev2.ToHRAFormat(cab[elev2.ID])
+	st[elev1.ID], _ = ElevToHRAFormat(elev1, cab[elev1.ID])
+	st[elev2.ID], _ = ElevToHRAFormat(elev2, cab[elev2.ID])
 
 	input := HRAInput{
 		HallOrder: hall,

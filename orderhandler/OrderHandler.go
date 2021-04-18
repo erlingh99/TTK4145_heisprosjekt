@@ -161,25 +161,7 @@ func connectToMaster() error {
 	return fmt.Errorf("Not implemented yet")
 }
 
-type HRAInput struct {
-	HallOrder [config.N_FLOORS][2]bool 					`json:"hallRequests"`
-	States    map[string]em.HRAElevState   	`json:"states"`
-}
 
-func toHRAInput(allOrders orders.OrderList, allStates map[string]em.Elevator) HRAInput {
-	input := HRAInput{}
-
-	hallOrders, CabOrders := allOrders.OrderListToHRAFormat()
-
-	input.HallOrder = hallOrders
-	for k, elev := range allStates {
-		states, err := elev.ToHRAFormat(CabOrders[k])
-		if err == nil {
-			input.States[k] = states
-		}
-	}
-	return input
-}
 
 
 //TODO

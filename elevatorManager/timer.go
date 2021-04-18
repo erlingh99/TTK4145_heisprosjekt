@@ -16,7 +16,7 @@ func timer_start(d time.Duration) {
 func timer_timedOut() bool {
 	if timerStarted {
 		select {
-		case _ = <-doorTimer.C:
+		case <-doorTimer.C:
 			timerStarted = false
 			return true
 		default:
