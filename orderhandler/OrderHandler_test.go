@@ -1,9 +1,6 @@
 package orderHandler
 
 import (
-	"encoding/json"
-
-	"os/exec"
 	"testing"
 
 	"elevatorproject/driver-go/elevio"
@@ -15,12 +12,13 @@ import (
 func TestOrderHandler(t *testing.T) {
 
 	
-	elev1 := Elevator{Floor: 2,
-					Behaviour: EB_Moving,
-					Dirn: 0,
-					Obstruction: false,
-					ID: "heis1"}
-	elev2 := Elevator{Floor: 1,
+	elev1 := Elevator{	Floor: 2,
+						Behaviour: EB_Moving,
+						Dirn: 0,
+						Obstruction: false,
+						ID: "heis1"}
+
+	elev2 := Elevator{	Floor: 1,
 						Behaviour: EB_Idle,
 						Dirn: 1,
 						Obstruction: false,
@@ -32,16 +30,16 @@ func TestOrderHandler(t *testing.T) {
 	o3 := orders.NewOrder(elevio.ButtonEvent{Floor: 0, Button: elevio.BT_HallUp}, "heis1")
 	o4 := orders.NewOrder(elevio.ButtonEvent{Floor: 2, Button: elevio.BT_HallDown}, "heis2")
 	o5 := orders.NewOrder(elevio.ButtonEvent{Floor: 3, Button: elevio.BT_HallDown}, "heis1")
-	t.Log("orders created")
+	//t.Log("orders created")
 	ol := orders.OrderList{o1,o2,o3,o4}
-	t.Log("list created")
+	//t.Log("list created")
 	ol.OrderUpdate(o5)
-	t.Log("list appended")
+	//t.Log("list appended")
 
-
+	
 	hall, cab := ol.OrderListToHRAFormat()
 
-	t.Log("hra created")
+	//t.Log("hra created")
 
 	t.Log(cab)
 
@@ -55,16 +53,27 @@ func TestOrderHandler(t *testing.T) {
 		States: st,
 	}
 
-	jsonBytes, _ := json.Marshal(input)
-	t.Log(string(jsonBytes))
+	output, _ := Assigner(input)
 
-	retvals, err := exec.Command("./hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
-	t.Log(err)
+	//t.Log(err)	
+	t.Log(output)
 
-	
-	output := make(map[string][][2]bool)
-	err = json.Unmarshal(retvals, &output)
-	t.Log(err)
-	
+	o3.Orderstate = orders.COMPLETED
+	ol.OrderUpdate(o3)
+
+	hall, cab = ol.OrderListToHRAFormat()
+
+	//t.Log("hra2 created")
+
+	t.Log(cab)
+
+	input = HRAInput{
+		HallOrder: hall,
+		States: st,
+	}
+
+	output, _ = Assigner(input)
+	//t.Log(err)
+
 	t.Log(output)
 }

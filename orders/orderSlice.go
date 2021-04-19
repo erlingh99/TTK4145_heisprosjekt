@@ -27,7 +27,7 @@ func (ol OrderList) FindAllUnassignedAndTimedoutOrders() OrderList {
 
 func (ol *OrderList) OrderUpdate(o Order) {
 	for i, order := range *ol {
-		if order.ID == o.ID { //orderUpdate not new
+		if order.Equal(o) { //orderUpdate not new
 			(*ol)[i] = o
 			return
 		}

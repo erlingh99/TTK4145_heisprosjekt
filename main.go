@@ -52,7 +52,7 @@ func main() {
 	go oh.Distributer(elevatorID, broad, chan2, chan3, broadcastReciever)
 
 	// Start elevatorManager
-	go em.ElevatorManager(orderChange<-, <-orders, id)
+	go em.ElevatorManager(elevatorID, orderChange<-, <-orders)
 
 	// Start networking
 	go networking.Init(chan1, chan2, chan3, chan4, chan5)

@@ -1,17 +1,19 @@
-
 package elevatorManager
 
 import (
 	"elevatorproject/driver-go/elevio"
+	"time"
 
 	"elevatorproject/config"
+	//"elevatorproject/orders"
 )
 
 
-var elevator = Elevator{Floor: 		-1, 
-						Behaviour: 	EB_Idle,
-			 			Dirn: 		elevio.MD_Stop,
-						Obstruction:false}
+var elevator = Elevator{Floor: 			-1, 
+						Behaviour: 		EB_Idle,
+			 			Dirn: 			elevio.MD_Stop,
+						Obstruction:	false,
+						LastChange:  	time.Now()}
 
 func setAllLights() {
 	for floor := 0; floor < config.N_FLOORS; floor++ {
@@ -33,23 +35,23 @@ func fsm_onRequestButtonPress(reqFloor int, reqBtn elevio.ButtonType) {
 	switch elevator.Behaviour {
 	case EB_DoorOpen:
 		if (elevator.Floor == reqFloor) {
-			timer_start(config.DOOR_TIMEOUT)
+			timer_start()
 		} else {
-			elevator.Requests[reqFloor][reqBtn] = 1
+			elevator.Requests[reqFloor][reqBtn] = true
 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
 		}
 	
 	case EB_Moving:
-		elevator.Requests[reqFloor][reqBtn] = 1
+		elevator.Requests[reqFloor][reqBtn] = false
 		elevio.SetButtonLamp(reqBtn, reqFloor, true)
 	
 	case EB_Idle:
 		if (elevator.Floor == reqFloor) {
 			elevio.SetDoorOpenLamp(true)
-			timer_start(config.DOOR_TIMEOUT)
+			timer_start()
 			elevator.Behaviour = EB_DoorOpen
 		} else {
-			elevator.Requests[reqFloor][reqBtn] = 1
+			elevator.Requests[reqFloor][reqBtn] = true
 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
 			elevator.Dirn = request_chooseDirection()
 			elevio.SetMotorDirection(elevator.Dirn)
@@ -67,23 +69,29 @@ func fsm_onFloorArrival(newFloor int) {
 
 	switch elevator.Behaviour {
 	case EB_Moving:
-		if(request_shouldStop()) {
+		if request_shouldStop() {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
 			elevator = request_clearAtCurrentFloor()
-			timer_start(config.DOOR_TIMEOUT)
+			timer_start()
 			//setAllLights()
 			elevator.Behaviour = EB_DoorOpen
+			//send order complete
 		}
 	default:
 	}
 
 }
 
-func fsm_onDoorTimeout() {
+func fsm_onDoorTimeout() {	
 
 	switch elevator.Behaviour {
 	case EB_DoorOpen:
+		if elevator.Obstruction {
+			timer_start()
+			return
+		}
+		
 		elevator.Dirn = request_chooseDirection()
 
 		elevio.SetDoorOpenLamp(false)
