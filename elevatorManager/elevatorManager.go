@@ -50,6 +50,10 @@ func ElevatorManager(ID 		string,
 				fmt.Println("Button pressed")
 				//fsm_onRequestButtonPress(v.Floor, v.Button)
 				//make order
+				if v.Floor == elevator.Floor && elevator.Behaviour != EB_Moving {
+					continue
+				}
+
 				o := orders.NewOrder(v, elevator.ID)
 				orderOut <- o
 
@@ -83,7 +87,7 @@ func ElevatorManager(ID 		string,
         	case <- drvStop:
 				fmt.Println("stop button not implemented")
 
-			case <-doorTimeout.C:
+			case <-doorTimeout.C:				
 				fsm_onDoorTimeout()			
         }
 		
