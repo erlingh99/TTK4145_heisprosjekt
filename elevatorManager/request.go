@@ -75,9 +75,8 @@ func request_shouldStop() bool {
 //Asuming everyone enters a elevator, even if the elevator is going the wrong way to start with
 func request_clearAtCurrentFloor() Elevator {
 	for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
-		 elevator.Requests[elevator.Floor][btn] = false
-		 //alert ordermanager
-		 elevio.SetButtonLamp(btn, elevator.Floor, false)
+		elevator.Requests[elevator.Floor][btn] = false
+		elevio.SetButtonLamp(btn, elevator.Floor, false)
 	}
 	return elevator
 }

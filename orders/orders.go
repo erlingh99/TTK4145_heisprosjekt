@@ -2,6 +2,7 @@ package orders
 
 import (
 	"elevatorproject/driver-go/elevio"
+	"fmt"
 	"time"
 )
 
@@ -14,6 +15,20 @@ const (
 	COMPLETED
 )
 
+func (e OrderState) String() string {
+    switch e {
+    case UNASSIGNED:
+        return "Unassigned"
+    case ASSIGNED:
+        return "Assigned"
+	case COMPLETED:
+		return "Completed"
+    default:
+        return "Unknown"
+    }
+}
+
+
 type OrderType int
 const (
 	HALL_UP OrderType = iota
@@ -21,14 +36,31 @@ const (
 	CAB
 )
 
-type floor int
+func (e OrderType) String() string {
+    switch e {
+    case HALL_UP:
+        return "HALL_UP"
+    case CAB:
+        return "CAB"
+	case HALL_DOWN:
+		return "HALL_DOWN"
+    default:
+        return "Unknown"
+    }
+}
+
+
+type Floor int
+
+func (f Floor) String() string {
+	return fmt.Sprintf("Floor %d", f)
+}
 
 type Order struct {
 	Orderstate         OrderState
 	Ordertype          OrderType
-	Destination        floor
-	Timestamp          time.Time
-	AssignedElevatorID string
+	Destination        Floor
+	Timestamp          time.Time	
 	OriginElevator     string
 }
 
@@ -36,12 +68,11 @@ func NewOrder(be elevio.ButtonEvent, elevID string) Order {
 	o := Order{
 		Orderstate:  	UNASSIGNED,
 		Ordertype:   	OrderType(be.Button),
-		Destination: 	floor(be.Floor),
+		Destination: 	Floor(be.Floor),
 		Timestamp:   	time.Now(),
 		OriginElevator:	elevID}
 	
-	if be.Button == elevio.BT_Cab {
-		o.AssignedElevatorID = elevID
+	if be.Button == elevio.BT_Cab {		
 		o.Orderstate = ASSIGNED
 	}
 	return o
@@ -56,20 +87,13 @@ func (o Order) CheckForOrderTimeout() bool {
 }
 
 func (o Order) Equal(o2 Order) bool {
-	if o.Ordertype != o2.Ordertype {		
-		return false
-	}
+	if o.Ordertype != o2.Ordertype {	return false	}
 
 	if o.Ordertype == CAB {
-		if o.AssignedElevatorID != o2.AssignedElevatorID {
-			return false
-		}
+		if o.OriginElevator != o2.OriginElevator {	return false	}
 	}
 
-	if o.Destination != o2.Destination {
-		return false
-	}
-
+	if o.Destination != o2.Destination {	return false	}
 
 	return true
 }

@@ -56,6 +56,7 @@ func Distributer(	ID 					string,
 		case SLAVE:
 			select {
 			case <-broadcastRx:
+				fmt.Println("alive message")
 				if !masterTimeoutTimer.Stop() {
 					<-masterTimeoutTimer.C
 				}
@@ -83,14 +84,18 @@ func Distributer(	ID 					string,
 		case MASTER:
 			select {
 			case newOrder := <-orderUpdate:
-				handler.AllOrders.OrderUpdate(newOrder)
+				handler.AllOrders.OrderUpdate(&newOrder)
 			case newState := <-elevatorStateUpdate:
 
 				if _, exists := handler.ElevatorStates[newState.ID]; !exists {
 					fmt.Println("new elevator registered: " + newState.ID)
 					handler.ElevatorStates[newState.ID] = newState
+					//handle possible new orders
+					newOrders := OrdersFromElev(newState)
+					handler.AllOrders.OrderUpdateList(newOrders)
+
 				} else if newState.LastChange.After(handler.ElevatorStates[newState.ID].LastChange) {
-					fmt.Println("elevatorState recieved: " + newState.ID)
+					//fmt.Println("elevatorState recieved: " + newState.ID)
 					handler.ElevatorStates[newState.ID] = newState
 				}
 
@@ -100,45 +105,43 @@ func Distributer(	ID 					string,
 				}
 				handler.Mode = SLAVE
 				enableIpBroadcast <- false
-				if !masterTimeoutTimer.Stop() {
-					<-masterTimeoutTimer.C
-				}
+				masterTimeoutTimer.Stop()
+				select {
+				case <-masterTimeoutTimer.C:
+				default:						
+				}					
+				
 				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 				//connect to other master msg=ip
 				//continue
 
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
-				delete(handler.ElevatorStates, elevID)
-									
+				delete(handler.ElevatorStates, elevID)				
 			}
-
 			delegatedOrders, err := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
 			if err != nil {
-				//panic?
-				//do what
-				//def not send backup and delegate
 				continue
-			}
+			} 
 			handler.Timestamp = time.Now()
+			handler.AllOrders.ClearFinishedOrders()		
 			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
 			backupChan <- handler
-			fmt.Println("Orders delegated, backup sent")
-			fmt.Println(delegatedOrders)
+			//fmt.Println("Orders delegated, backup sent")
+			
 		}
 	}
 }
 
-func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) map[string][config.N_FLOORS][config.N_BUTTONS]bool {
+func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
 	input := toHRAInput(orders, elevatorStates)
-
 	lights := input.HallOrder
 
 	hallOrders, err := Assigner(input)
 
 	if err != nil {
-		fmt.Printf("Error distributing orders: %e", err)
-		return nil
+		//fmt.Printf("Error distributing orders: %e", err)
+		return nil, err
 	}
 
 	delegatedOrders := make(map[string][config.N_FLOORS][config.N_BUTTONS]bool)
@@ -152,14 +155,30 @@ func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.El
 
 	//want to send lights on a [4][3]bool chan
 	delegatedOrders["HallLights"] = combine.Mux(lights, [config.N_FLOORS]bool{false, false, false, false}) 
-	return delegatedOrders
+	return delegatedOrders, nil
 }
 
-func connectToMaster() error {
-	return fmt.Errorf("Not implemented yet")
+func OrdersFromElev(elev em.Elevator) orders.OrderList{
+
+	subList := make(orders.OrderList, 0)
+	for i := 0; i<config.N_FLOORS; i++ {
+		for j := 0; j<config.N_BUTTONS; j++ {
+			if elev.Requests[i][j] {
+				o := orders.Order{Orderstate: 		orders.UNASSIGNED,
+									OriginElevator: elev.ID,
+									Destination: 	orders.Floor(i),
+									Timestamp: 		time.Now()}
+				switch j {
+				case 0: o.Ordertype = orders.HALL_UP
+				case 1: o.Ordertype = orders.HALL_DOWN
+				case 2: o.Ordertype = orders.CAB
+				}
+				subList = append(subList, &o)
+			}
+		}
+	}
+	return subList
 }
-
-
 
 
 //TODO

@@ -1,8 +1,6 @@
 package orders
 
-import "elevatorproject/config"
-
-type OrderList []Order
+type OrderList []*Order
 
 func (ol *OrderList) ClearFinishedOrders() {
 	for i := 0; i < len(*ol); i++ {
@@ -14,46 +12,36 @@ func (ol *OrderList) ClearFinishedOrders() {
 	}
 }
 
-func (ol OrderList) FindAllUnassignedAndTimedoutOrders() OrderList {
-	subList := make([]Order, 0)
-
-	for _, order := range ol {
-		if order.Orderstate == UNASSIGNED || order.CheckForOrderTimeout() {
-			subList = append(subList, order)
-		}
+func (ol *OrderList) OrderUpdate(o *Order) {	
+	if o.Orderstate == COMPLETED {
+		ol.clearOrdersAtFloor(o.Destination, o.OriginElevator)
+		return
 	}
-	return subList
-}
 
-func (ol *OrderList) OrderUpdate(o Order) {
-	for i, order := range *ol {
-		if order.Equal(o) { //orderUpdate not new
+	for i, order := range *ol {		
+		if order.Equal(*o) { //orderUpdate not new
 			(*ol)[i] = o
 			return
 		}
 	}
-	*ol = append(*ol, o) //new order
+
+	*ol = append(*ol, o)
 }
 
-//do all uncompleted orders, or leave assigned and not timed out orders alone?
-func (ol OrderList) OrderListToHRAFormat() ([config.N_FLOORS][2]bool, map[string][config.N_FLOORS]bool) {
-	hallOrders := [config.N_FLOORS][2]bool{}
-	cabOrders := make(map[string][config.N_FLOORS]bool)
-
-	for _, order := range ol {
-		if order.Orderstate == COMPLETED {
-			continue
-		}
-
-		switch order.Ordertype {
-		case CAB:
-			cabs := cabOrders[order.AssignedElevatorID]
-			cabs[order.Destination] = true
-			cabOrders[order.AssignedElevatorID] = cabs
-		default:
-			hallOrders[order.Destination][order.Ordertype] = true
-		}
+func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
+	for _, v := range ol2 {
+		ol.OrderUpdate(v)
 	}
+}
 
-	return hallOrders, cabOrders
+func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
+	for _, o := range ol {
+		if o.Destination == f && o.Ordertype == CAB && o.OriginElevator == elevID {
+			o.Orderstate = COMPLETED
+			//ol.OrderUpdate(o)				
+		} else if o.Destination == f && o.Ordertype != CAB {
+			o.Orderstate = COMPLETED	
+			//ol.OrderUpdate(o)		
+		}		
+	}
 }
