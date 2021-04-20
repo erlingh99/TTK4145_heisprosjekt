@@ -76,7 +76,6 @@ func request_shouldStop() bool {
 func request_clearAtCurrentFloor() Elevator {
 	for btn := elevio.ButtonType(0); btn < config.N_BUTTONS; btn++ {
 		 elevator.Requests[elevator.Floor][btn] = false
-		 //alert ordermanager
 		 elevio.SetButtonLamp(btn, elevator.Floor, false)
 	}
 	return elevator

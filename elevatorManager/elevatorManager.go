@@ -14,9 +14,7 @@ func ElevatorManager(ID 		string,
 					ordersIn 	<-chan map[string][config.N_FLOORS][config.N_BUTTONS]bool,
 					shareState  chan<- Elevator) {
 
-	fmt.Printf("Elevator Manager started: %s\n" + ID)	
-	fsm_onInitBetweenFloor() //rename til bare fsm_init og sende med ID istedet for å sette her?
-	elevator.ID = ID
+	fmt.Printf("Elevator Manager started: %s\n", ID)	
 
 	drvButtons := make(chan elevio.ButtonEvent)
 	drvFloors  := make(chan int)
@@ -30,7 +28,10 @@ func ElevatorManager(ID 		string,
 	go elevio.PollStopButton(drvStop)
 
 
-	doorTimeout := timer_init()
+	timer_init()
+	fsm_onInit(ID)
+	//shareState <- elevator
+	ticker := time.NewTicker(1* time.Second)
 
     for {
 		//Main loop checking for inputs on any of the channels
@@ -50,7 +51,7 @@ func ElevatorManager(ID 		string,
 			//When elevator passes a floor sensor
 			case f := <- drvFloors:
 				fmt.Println("Hit floor")
-
+				fsm_onFloorArrival(f)
 				//Update master that order is completed if a floor with order is hit
 				if request_shouldStop() {
 					o := orders.Order{
@@ -59,10 +60,10 @@ func ElevatorManager(ID 		string,
 									Destination: 	orders.Floor(f),
 									Timestamp:   	time.Now(),
 									OriginElevator:	elevator.ID}
-					orderOut <- o	
+					orderOut <- o
 				}
 				
-				fsm_onFloorArrival(f)
+				
 				
 			//When there is an obstruction
 			case b := <- drvObstr:
@@ -75,6 +76,7 @@ func ElevatorManager(ID 		string,
 			
 			//when there comes a new orders from the master elevator
 			case newOrders := <-ordersIn:
+				fmt.Println("Order in")
 				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
 
 				_, cabLights := combine.Demux(newOrders[elevator.ID])				
@@ -93,12 +95,16 @@ func ElevatorManager(ID 		string,
 				fmt.Println("stop button not implemented")
 
 			//When the doortimer is done
-			case <-doorTimeout.C:
-				fsm_onDoorTimeout()			
+			case <-doorTimer.C:
+				fmt.Println("Doortimeout")
+				fsm_onDoorTimeout()	
+			
+			case <- ticker.C:
+				shareState <- elevator
+
         }
-		
 		elevator.LastChange = time.Now()
-		shareState <- elevator
+
 				
 	}
 }

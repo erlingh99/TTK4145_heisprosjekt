@@ -115,27 +115,22 @@ func Distributer(	ID 					string,
 				fmt.Println("Connection error with slave " + elevID)
 				delete(handler.ElevatorStates, elevID)				
 			}
-
 			delegatedOrders, err := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
 			if err != nil {
-				//panic?
-				//do what
-				//def not send backup and delegate
 				continue
-			}
-			handler.AllOrders.ClearFinishedOrders()
-			handler.Timestamp = time.Now()			
+			} 
+			handler.Timestamp = time.Now()
+			handler.AllOrders.ClearFinishedOrders()		
 			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
 			backupChan <- handler
 			fmt.Println("Orders delegated, backup sent")
-			fmt.Println(delegatedOrders)
+			
 		}
 	}
 }
 
 func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
 	input := toHRAInput(orders, elevatorStates)
-
 	lights := input.HallOrder
 
 	hallOrders, err := Assigner(input)
@@ -174,7 +169,7 @@ func OrdersFromElev(elev em.Elevator) orders.OrderList{
 				case 1: o.Ordertype = orders.HALL_DOWN
 				case 2: o.Ordertype = orders.CAB
 				}
-				subList = Append(subList, o)
+				subList = append(subList, o)
 			}
 		}
 	}

@@ -13,7 +13,7 @@ type HRAInput struct {
 }
 
 func toHRAInput(allOrders orders.OrderList, allStates map[string]em.Elevator) HRAInput {
-	input := HRAInput{}
+	input := HRAInput{States: make(map[string]HRAElevState)}
 
 	hallOrders, CabOrders := OrderListToHRAFormat(allOrders)
 
@@ -66,9 +66,9 @@ func OrderListToHRAFormat(ol orders.OrderList) ([config.N_FLOORS][2]bool, map[st
 
 		switch order.Ordertype {
 		case orders.CAB:
-			cabs := cabOrders[order.AssignedElevatorID]
+			cabs := cabOrders[order.OriginElevator]
 			cabs[order.Destination] = true
-			cabOrders[order.AssignedElevatorID] = cabs
+			cabOrders[order.OriginElevator] = cabs
 		default:
 			hallOrders[order.Destination][order.Ordertype] = true
 		}
