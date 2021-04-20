@@ -68,18 +68,14 @@ func ElevatorManager(ID 		string,
 				}				
 
 			case newOrders := <-ordersIn:
-				elevator.Requests = newOrders[elevator.ID]
-				//maybe not overwrite?
-				
+				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
+
+				_, cabLights := combine.Demux(newOrders[elevator.ID])				
+				hallLights, _ := combine.Demux(newOrders["HallLights"])
 
 				//set lights
-				for k, v := range newOrders {
-					hall, cab := combine.Demux(v)
-					setHallLights(hall)
-					if k == elevator.ID {
-						setCabLights(cab)
-					}
-				}
+				setCabLights(cabLights)
+				setHallLights(hallLights)
 
         	case <- drvStop:
 				fmt.Println("stop button not implemented")

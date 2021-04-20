@@ -113,7 +113,13 @@ func Distributer(	ID 					string,
 									
 			}
 
-			delegatedOrders := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
+			delegatedOrders, err := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
+			if err != nil {
+				//panic?
+				//do what
+				//def not send backup and delegate
+				continue
+			}
 			handler.Timestamp = time.Now()
 			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
 			backupChan <- handler
@@ -125,6 +131,9 @@ func Distributer(	ID 					string,
 
 func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) map[string][config.N_FLOORS][config.N_BUTTONS]bool {
 	input := toHRAInput(orders, elevatorStates)
+
+	lights := input.HallOrder
+
 	hallOrders, err := Assigner(input)
 
 	if err != nil {
@@ -136,10 +145,13 @@ func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.El
 
 	for k, elev := range elevatorStates {
 		elevOrders := combine.Mux(hallOrders[k], input.States[k].CabRequests)
-		//if elevOrders != nil {
-			delegatedOrders[elev.ID] = elevOrders
-		//}
+		
+		delegatedOrders[elev.ID] = elevOrders
+		
 	}
+
+	//want to send lights on a [4][3]bool chan
+	delegatedOrders["HallLights"] = combine.Mux(lights, [config.N_FLOORS]bool{false, false, false, false}) 
 	return delegatedOrders
 }
 
