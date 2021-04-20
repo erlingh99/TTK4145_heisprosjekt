@@ -18,10 +18,10 @@ func ElevatorManager(ID 		string,
 	fsm_onInitBetweenFloor() //rename til bare fsm_init og sende med ID istedet for å sette her?
 	elevator.ID = ID
 
-	drvButtons := make(<-chan elevio.ButtonEvent)
-	drvFloors  := make(<-chan int)
-	drvObstr   := make(<-chan bool)
-	drvStop    := make(<-chan bool)
+	drvButtons := make(chan elevio.ButtonEvent)
+	drvFloors  := make(chan int)
+	drvObstr   := make(chan bool)
+	drvStop    := make(chan bool)
 	
 
 	go elevio.PollButtons(drvButtons)
@@ -37,12 +37,13 @@ func ElevatorManager(ID 		string,
         select {
 			//When button is pressed on the elevator
 			case v := <- drvButtons:
-				fmt.Println("Button pressed")
-				//make order
+				fmt.Println("Button pressed")				
 				if v.Floor == elevator.Floor && elevator.Behaviour != EB_Moving {
+					fsm_openDoor()
 					continue
 				}
 
+				//make order
 				o := orders.NewOrder(v, elevator.ID)
 				orderOut <- o
 			
@@ -52,12 +53,12 @@ func ElevatorManager(ID 		string,
 
 				//Update master that order is completed if a floor with order is hit
 				if request_shouldStop() {
-					o := Order{
-								Orderstate:  	orders.COMPLETED,
-								Ordertype:   	orders.BT_Cab,
-								Destination: 	f,
-								Timestamp:   	time.Now(),
-								OriginElevator:	elevator.ID}
+					o := orders.Order{
+									Orderstate:  	orders.COMPLETED,
+									Ordertype:   	orders.CAB,
+									Destination: 	orders.Floor(f),
+									Timestamp:   	time.Now(),
+									OriginElevator:	elevator.ID}
 					orderOut <- o	
 				}
 				
@@ -85,6 +86,7 @@ func ElevatorManager(ID 		string,
 
 				//start elevator
 				fsm_onOrdersRecieved()
+				
 			
 			//When the stopbutton is pressed, this is not implemented
         	case <- drvStop:
