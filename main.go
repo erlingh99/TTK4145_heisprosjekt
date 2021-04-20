@@ -21,6 +21,8 @@ func main() {
 	flag.StringVar(&elevatorID, "id", "", "id of this peer")
 	flag.Parse()
 
+	
+
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the
 	//  process ID)
@@ -32,14 +34,15 @@ func main() {
 		}
 		elevatorID = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
+	elevio.Init(elevatorID, config.N_FLOORS)
 
 	ordersFromElevator := make(chan orders.Order)
 	elevStateChange := make(chan em.Elevator)
 	//backupChan := make(chan oh.DistributerState)
 
-	ordersToElevators := make(chan map[string][][]bool)
+	ordersToElevators := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 
-	//enableIpBroadcast := make(chan bool)	
+	//enableIpBroadcast := make(chan bool)
 	//broadcastReciever := make(chan string)
 
 	//go peers.Transmitter(config.BCAST_PORT, localip, enableIpBroadcast) //can use peers to broadcast since only one thing is broadcasted
