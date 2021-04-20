@@ -13,7 +13,7 @@ type HRAInput struct {
 }
 
 func toHRAInput(allOrders orders.OrderList, allStates map[string]em.Elevator) HRAInput {
-	input := HRAInput{}
+	input := HRAInput{States: make(map[string]HRAElevState)}
 
 	hallOrders, CabOrders := OrderListToHRAFormat(allOrders)
 

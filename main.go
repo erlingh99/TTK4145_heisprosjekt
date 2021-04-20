@@ -5,7 +5,8 @@ import (
 	// "time"
 	"elevatorproject/config"
 	em "elevatorproject/elevatorManager"
-	//"elevatorproject/network/localip"
+	"elevatorproject/network/localip"
+	"elevatorproject/driver-go/elevio"
 	//"elevatorproject/network/peers"
 	//"elevatorproject/networking"
 	oh "elevatorproject/orderHandler"
@@ -35,16 +36,19 @@ func main() {
 		}
 		elevatorID = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
-	elevio.Init(elevatorID, config.N_FLOORS)
+	elevio.Init("localhost:15657", config.N_FLOORS)
 
 	ordersFromElevator := make(chan orders.Order)
 	elevStateChange := make(chan em.Elevator)
-	//backupChan := make(chan oh.DistributerState)
+	backupChan := make(chan oh.DistributerState)
 
 	ordersToElevators := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 
-	//enableIpBroadcast := make(chan bool)
-	//broadcastReciever := make(chan string)
+	enableIpBroadcast := make(chan bool)
+	broadcastReciever := make(chan string)
+
+	checkpointxxxx := make(chan oh.DistributerState)
+	elevDisconnect := make(chan string)
 
 	//go peers.Transmitter(config.BCAST_PORT, localip, enableIpBroadcast) //can use peers to broadcast since only one thing is broadcasted
 	//go peers.Receiver(config.BCAST_PORT, broadcastReciever)
@@ -53,10 +57,10 @@ func main() {
 
 
 	// Start orderHandler
-	go oh.Distributer(elevatorID, <-ordersFromElevator, elevStateChange, _, _, _, ordersToElevators<-, _, _)
+	go oh.Distributer(elevatorID, ordersFromElevator, elevStateChange, broadcastReciever, checkpointxxxx, elevDisconnect, ordersToElevators, enableIpBroadcast, backupChan)
 
 	// Start elevatorManager
-	go em.ElevatorManager(elevatorID, ordersFromElevator<-, <-ordersToElevators, elevStateChange)
+	go em.ElevatorManager(elevatorID, ordersFromElevator, ordersToElevators, elevStateChange)
 
 	// Start networking
 	//go networking.Init(chan1, chan2, chan3, chan4, chan5)
@@ -78,5 +82,11 @@ func main() {
 		// 		fmt.Printf("* New: %v\n", p.New)
 		// 		fmt.Printf("* Lost: %v\n", p.Lost)
 		// }
+		select{
+		case <-enableIpBroadcast:
+		case <-backupChan:
+		}
+
+
 	}
 }
