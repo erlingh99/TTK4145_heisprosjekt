@@ -10,12 +10,12 @@ import (
 )
 
 func ElevatorManager(ID 		string,
-					ordersOut 	chan<- orders.Order,
+					orderOut 	chan<- orders.Order,
 					ordersIn 	<-chan map[string][config.N_FLOORS][config.N_BUTTONS]bool,
 					shareState  chan<- Elevator) {
 
 	fmt.Printf("Elevator Manager started: %s\n" + ID)	
-	if elevator.Floor== -1 { //vil alltid være tilfellet?
+	if elevator.Floor== -1 { //vil alltid være tilfellet ettersom pollFloorSensor ikke er startet
 		fsm_onInitBetweenFloor() //rename til bare fsm_init og sende med ID istedet for å sette her?
 	}
 	elevator.ID = ID
@@ -48,12 +48,12 @@ func ElevatorManager(ID 		string,
         select {
 			case v := <- drvButtons:
 				fmt.Println("Button pressed")
-				fsm_onRequestButtonPress(v.Floor, v.Button)
-				//make order?
+				//fsm_onRequestButtonPress(v.Floor, v.Button)
+				//make order
 				o := orders.NewOrder(v, elevator.ID)
-				ordersOut <- o
+				orderOut <- o
 
-				fmt.Println(elevator.Requests)
+				//fmt.Println(elevator.Requests)
 				
 			case f := <- drvFloors:
 				fmt.Println("Hit floor")
@@ -76,6 +76,9 @@ func ElevatorManager(ID 		string,
 				//set lights
 				setCabLights(cabLights)
 				setHallLights(hallLights)
+
+				//start elevator
+				fsm_onOrdersRecieved()
 
         	case <- drvStop:
 				fmt.Println("stop button not implemented")
