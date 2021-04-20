@@ -3,7 +3,6 @@ package elevatorManager
 import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
-	"fmt"
 	"time"
 )
 
