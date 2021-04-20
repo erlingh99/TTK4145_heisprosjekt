@@ -73,7 +73,6 @@ func fsm_onFloorArrival(newFloor int) {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
 			elevator = request_clearAtCurrentFloor()
-			shareState <- elevator
 			timer_start()
 			//setAllLights()
 			elevator.Behaviour = EB_DoorOpen
