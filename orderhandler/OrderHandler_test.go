@@ -37,7 +37,7 @@ func TestOrderHandler(t *testing.T) {
 	//t.Log("list appended")
 
 	
-	hall, cab := ol.OrderListToHRAFormat()
+	hall, cab := OrderListToHRAFormat(ol)
 
 	//t.Log("hra created")
 
@@ -61,7 +61,7 @@ func TestOrderHandler(t *testing.T) {
 	o3.Orderstate = orders.COMPLETED
 	ol.OrderUpdate(o3)
 
-	hall, cab = ol.OrderListToHRAFormat()
+	hall, cab = OrderListToHRAFormat(ol)
 
 	//t.Log("hra2 created")
 

@@ -174,7 +174,7 @@ func OrdersFromElev(elev em.Elevator) orders.OrderList{
 				case 1: o.Ordertype = orders.HALL_DOWN
 				case 2: o.Ordertype = orders.CAB
 				}
-				subList = Append(subList, o)
+				subList = append(subList, o)
 			}
 		}
 	}

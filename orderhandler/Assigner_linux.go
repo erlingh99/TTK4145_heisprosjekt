@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"elevatorproject/config"
 )
 
 func Assigner(input HRAInput) (map[string][config.N_FLOORS][2]bool, error) {

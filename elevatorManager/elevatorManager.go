@@ -14,15 +14,15 @@ func ElevatorManager(ID 		string,
 					ordersIn 	<-chan map[string][config.N_FLOORS][config.N_BUTTONS]bool,
 					shareState  chan<- Elevator) {
 
-	fmt.Printf("Elevator Manager started: %s\n" + ID)	
+	fmt.Printf("Elevator Manager started: %s\n", ID)	
 	fsm_onInitBetweenFloor() //rename til bare fsm_init og sende med ID istedet for å sette her?
 	elevator.ID = ID
 
 	drvButtons := make(chan elevio.ButtonEvent)
 	drvFloors  := make(chan int)
+
 	drvObstr   := make(chan bool)
-	drvStop    := make(chan bool)
-	
+	drvStop    := make(chan bool)	
 
 	go elevio.PollButtons(drvButtons)
 	go elevio.PollFloorSensor(drvFloors)
