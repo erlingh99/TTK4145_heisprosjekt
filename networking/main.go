@@ -32,11 +32,18 @@ var AddrRecvLastTime = time.Now()
 
 var iAmMaster = false
 
+var SlaveIPs []string
+var SlaveLastAliveMsgs []time.Time
+
 // Used for accepting incoming connections
 var NextOpenPort = 20003
 
 // Used for connecting new channel to master
 var ConnectPort = 20003
+
+type AliveMessage struct {
+	IP string
+}
 
 func Init(
 	elevatorID 			string,
@@ -64,13 +71,17 @@ func Init(
 	fmt.Println("Init Networking")
 	
 	// Make channels to network:
-	listenerErrors := 					make(chan<- error)
 	ordersToNetwork := 					make(chan<- orders.Order)
 	stringsToNetwork :=					make(chan<- string)
 	orderhandlerstatesToNetwork := 		make(chan<- orderhandler.OrderHandlerState)
 	orderTablesToNetwork := 			make(chan<- map[string][][]bool)
+	aliveMessagesToNetwork :=			make(chan<- AliveMessage)
 
-	go tcp.Master(config.LISTEN_PORT, listenerErrors, ordersToNetwork, stringsToNetwork, orderhandlerstatesToNetwork, orderTablesToNetwork)
+	// Make channels to get back info from network master:
+	listenerErrors := 					make(chan<- error)
+	newConnCh :=						make(chan<- string)
+
+	go tcp.Master(config.LISTEN_PORT, listenerErrors, ordersToNetwork, stringsToNetwork, orderhandlerstatesToNetwork, orderTablesToNetwork, aliveMessagesToNetwork)
 
 	// Declare channels from network:
 	var receiverErrors 					<-chan error
@@ -78,12 +89,14 @@ func Init(
 	var stringsFromNetwork 				<-chan string
 	var orderhandlerstatesFromNetwork 	<-chan orderhandler.OrderHandlerState
 	var orderTablesFromNetwork 			<-chan map[string][][]bool
+	var aliveMessagesFromNetwork		<-chan AliveMessage
 
 	// go tcp.Slave(MasterIP, config.LISTEN_PORT, receiverErrors, ordersFromNetwork, stringsFromNetwork, orderhandlerstatesFromNetwork, orderTablesFromNetwork)
 
 	// Spawn side threads
 	go ListenForBroadcastedIP(config.BROADCAST_PORT)
 	go TimeoutController()
+	go SlaveTimeoutController(aliveMessagesFromNetwork, aliveMessagesToNetwork)
 	
 	// Main loop
 	for {
@@ -127,6 +140,14 @@ func Init(
 		case orderTable := <-orderTablesFromNetwork:
 			// This is a set of delegated orders, send to elevatormanager
 			ordersTablesIn<- orderTable
+
+		// Info from network master:
+		case newSlaveIP := <-newConnCh:
+			if iAmMaster {
+				// Add ip to slave list
+				SlaveIPs = append(SlaveIPs, newSlaveIP)
+				SlaveLastAliveMsgs = append(SlaveLastAliveMsgs, time.Now())
+			}
 		
 		// New master:
 		case MasterIP = <-newMasterNotificationCh:
@@ -136,9 +157,10 @@ func Init(
 			stringsFromNetwork =				make(<-chan string)
 			orderhandlerstatesFromNetwork = 	make(<-chan orderhandler.OrderHandlerState)
 			orderTablesFromNetwork = 			make(<-chan map[string][][]bool)
+			aliveMessagesFromNetwork =			make(<-chan AliveMessage)
 	
 			// Spawn slave thread
-			go tcp.Slave(MasterIP, config.LISTEN_PORT, receiverErrors, ordersFromNetwork, stringsFromNetwork, orderhandlerstatesFromNetwork, orderTablesFromNetwork)
+			go tcp.Slave(MasterIP, config.LISTEN_PORT, receiverErrors, ordersFromNetwork, stringsFromNetwork, orderhandlerstatesFromNetwork, orderTablesFromNetwork, aliveMessagesFromNetwork)
 			 
 
 		// No actions on channels:
@@ -169,6 +191,48 @@ func TimeoutController() {
 		}
 	
 		if iAmMaster {
+			message := "I am your master"
+			// message := NextOpenPort
+			fmt.Printf("Broadcasting message: %d\n", message)
+			addrSendChannel <- message
+		}
+	}
+}
+
+func SlaveTimeoutController(aliveMsgCh <-chan AliveMessage) {
+	go func() {
+		for {
+			aliveMsg := <-aliveMsgCh:
+			ip := aliveMsg.IP
+			var slaveNr int
+			for i, el := range SlaveIPs {
+				if el == ip {
+					slaveNr = i
+					break
+				}
+			}
+			SlaveLastAliveMsgs[slaveNr] = time.Now()
+		}
+	}()
+	for {
+		time.Sleep(config.SLAVE_ALIVE_MSG_INTERVAL)
+		
+		slavesToRemove := make([]int)
+		for i, lastAliveMsg := range SlaveLastAliveMsgs {
+			if iAmMaster && time.Now().After(lastAliveMsg.Add(config.SLAVE_ALIVE_MSG_LISTEN_TIMEOUT)) {
+				// Timeout
+				fmt.Println("Timeout. Assume slave has died")
+				slavesToRemove = append(slavesToRemove, i)
+			}
+		}
+
+		// Iterate backwards because we are deleting things as we go
+		for i := len(slavesToRemove) - 1; i >= 0; i-- {
+			SlaveIPs = append(SlaveIPs[:i], SlaveIPs[i+1:]...)
+			SlaveLastAliveMsgs = append(SlaveLastAliveMsgs[:i], SlaveLastAliveMsgs[i+1:]...)
+		}
+	
+		if !iAmMaster {
 			message := "I am your master"
 			// message := NextOpenPort
 			fmt.Printf("Broadcasting message: %d\n", message)

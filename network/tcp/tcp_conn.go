@@ -91,7 +91,7 @@ func Transmitter(ip string, port int, errorChan chan<- error, chans ...interface
 
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
-func Master(port int, errorChan chan<- error, chans ...interface{}) {
+func Master(port int, newConnChan chan<- string, errorChan chan<- error, chans ...interface{}) {
 	checkArgs(chans...)
 
 	addr := fmt.Sprintf(":%d", port)
@@ -112,6 +112,7 @@ func Master(port int, errorChan chan<- error, chans ...interface{}) {
 	go func() {
 		for {
 			conn, _ := listener.Accept()
+			newConnChan<- conn.RemoteAddr().(*net.TCPAddr).IP.String()
 			conns = append(conns, conn)
 		}
 	}()
@@ -135,7 +136,7 @@ func Master(port int, errorChan chan<- error, chans ...interface{}) {
 			_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
 	
 			if err != nil {
-				// Here we should have a way to remove conns that are no longer in use, but it will lokk a little messy,
+				// Here we should have a way to remove conns that are no longer in use, but it will look a little messy,
 				// and I don't think we will face any issues with it. Better to just restart from time to time...
 				// (the below code is not fully functional)
 				// errorChan <- err
