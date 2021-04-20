@@ -107,31 +107,43 @@ func Master(port int, errorChan chan<- error, chans ...interface{}) {
 		n++
 	}
 
+	var conns []net.Conn
+	
+	go func() {
+		for {
+			conn, _ := listener.Accept()
+			conns = append(conns, conn)
+		}
+	}()
+
+	selectCases := make([]reflect.SelectCase, n)
+	typeNames := make([]string, n)
+	for i, ch := range chans {
+		selectCases[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ch),
+		}
+		typeNames[i] = reflect.TypeOf(ch).Elem().String()
+	}
+
 	for {
-		conn, _ := listener.Accept()
-		go func() {
-			selectCases := make([]reflect.SelectCase, n)
-			typeNames := make([]string, n)
-			for i, ch := range chans {
-				selectCases[i] = reflect.SelectCase{
-					Dir:  reflect.SelectRecv,
-					Chan: reflect.ValueOf(ch),
-				}
-				typeNames[i] = reflect.TypeOf(ch).Elem().String()
+		chosen, value, _ := reflect.Select(selectCases)
+
+		for _, conn := range conns {
+			buf, _ := json.Marshal(value.Interface())
+	
+			_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
+	
+			if err != nil {
+				// Here we should have a way to remove conns that are no longer in use, but it will lokk a little messy,
+				// and I don't think we will face any issues with it. Better to just restart from time to time...
+				// (the below code is not fully functional)
+				// errorChan <- err
+				// conn.Close()
+				// conns = append(conns[:i], conns[i+1:]...)
+				// return
 			}
-
-			for {
-				chosen, value, _ := reflect.Select(selectCases)
-				buf, _ := json.Marshal(value.Interface())
-
-				_, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
-
-				if err != nil {
-					errorChan <- err
-					return
-				}
-			}
-		}()
+		}
 	}
 }
 
