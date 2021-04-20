@@ -107,13 +107,13 @@ func fsm_onDoorTimeout() {
 	}
 }
 
-func fsm_setCabLights(cabLights [][]bool) {
+func fsm_setCabLights(cabLights [config.N_FLOORS]bool) {
 	for floor := 0; floor < config.N_FLOORS; floor ++ {
-		elevio.SetButtonLamp(elevio.BT_Cab, floor, cabLights[floor][btn])
+		elevio.SetButtonLamp(elevio.BT_Cab, floor, cabLights[floor])
 	}
 }
 
-func fsm_setHallLights(hallLights [][]bool) {
+func fsm_setHallLights(hallLights [config-N_FLOORS][config.N_BUTTONS - 1]bool) {
 	for floor := 0; floor < config.N_FLOORS; floor ++ {
 		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS - 1; btn ++ {
 			elevio.SetButtonLamp(btn, floor, cabLights[floor][btn])
