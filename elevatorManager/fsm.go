@@ -29,7 +29,7 @@ func fsm_onInitBetweenFloor() {
 	elevator.Behaviour = EB_Moving
 }
 
-func fsm_onRequestButtonPress(reqFloor int, reqBtn elevio.ButtonType) {
+func fsm_onOrdersRecieved(reqFloor int, reqBtn elevio.ButtonType) {
 	//ADD printing for debug
 
 	switch elevator.Behaviour {
@@ -73,6 +73,7 @@ func fsm_onFloorArrival(newFloor int) {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
 			elevator = request_clearAtCurrentFloor()
+			shareState <- elevator
 			timer_start()
 			//setAllLights()
 			elevator.Behaviour = EB_DoorOpen
@@ -103,5 +104,19 @@ func fsm_onDoorTimeout() {
 			elevator.Behaviour = EB_Moving
 		}
 	default:
+	}
+}
+
+func fsm_setCabLights(cabLights [][]bool) {
+	for floor := 0; floor < config.N_FLOORS; floor ++ {
+		elevio.SetButtonLamp(elevio.BT_Cab, floor, cabLights[floor][btn])
+	}
+}
+
+func fsm_setHallLights(hallLights [][]bool) {
+	for floor := 0; floor < config.N_FLOORS; floor ++ {
+		for btn := elevio.ButtonType(0); btn < config.N_BUTTONS - 1; btn ++ {
+			elevio.SetButtonLamp(btn, floor, cabLights[floor][btn])
+		}
 	}
 }
