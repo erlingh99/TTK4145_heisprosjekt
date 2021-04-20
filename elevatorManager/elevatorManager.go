@@ -100,6 +100,7 @@ func ElevatorManager(ID 		string,
 				fsm_onDoorTimeout()	
 			
 			case <- ticker.C:
+				fmt.Println("Ticker")
 				shareState <- elevator
 
         }
