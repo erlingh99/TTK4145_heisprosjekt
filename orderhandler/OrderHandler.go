@@ -56,6 +56,7 @@ func Distributer(	ID 					string,
 		case SLAVE:
 			select {
 			case <-broadcastRx:
+				fmt.Println("alive message")
 				if !masterTimeoutTimer.Stop() {
 					<-masterTimeoutTimer.C
 				}
@@ -83,7 +84,7 @@ func Distributer(	ID 					string,
 		case MASTER:
 			select {
 			case newOrder := <-orderUpdate:
-				handler.AllOrders.OrderUpdate(newOrder)
+				handler.AllOrders.OrderUpdate(&newOrder)
 			case newState := <-elevatorStateUpdate:
 
 				if _, exists := handler.ElevatorStates[newState.ID]; !exists {
@@ -94,7 +95,7 @@ func Distributer(	ID 					string,
 					handler.AllOrders.OrderUpdateList(newOrders)
 
 				} else if newState.LastChange.After(handler.ElevatorStates[newState.ID].LastChange) {
-					fmt.Println("elevatorState recieved: " + newState.ID)
+					//fmt.Println("elevatorState recieved: " + newState.ID)
 					handler.ElevatorStates[newState.ID] = newState
 				}
 
@@ -104,9 +105,12 @@ func Distributer(	ID 					string,
 				}
 				handler.Mode = SLAVE
 				enableIpBroadcast <- false
-				if !masterTimeoutTimer.Stop() {
-					<-masterTimeoutTimer.C
-				}
+				masterTimeoutTimer.Stop()
+				select {
+				case <-masterTimeoutTimer.C:
+				default:						
+				}					
+				
 				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
 				//connect to other master msg=ip
 				//continue
@@ -123,7 +127,7 @@ func Distributer(	ID 					string,
 			handler.AllOrders.ClearFinishedOrders()		
 			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
 			backupChan <- handler
-			fmt.Println("Orders delegated, backup sent")
+			//fmt.Println("Orders delegated, backup sent")
 			
 		}
 	}
@@ -136,7 +140,7 @@ func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.El
 	hallOrders, err := Assigner(input)
 
 	if err != nil {
-		fmt.Printf("Error distributing orders: %e", err)
+		//fmt.Printf("Error distributing orders: %e", err)
 		return nil, err
 	}
 
@@ -169,7 +173,7 @@ func OrdersFromElev(elev em.Elevator) orders.OrderList{
 				case 1: o.Ordertype = orders.HALL_DOWN
 				case 2: o.Ordertype = orders.CAB
 				}
-				subList = append(subList, o)
+				subList = append(subList, &o)
 			}
 		}
 	}

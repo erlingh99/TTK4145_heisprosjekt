@@ -16,20 +16,44 @@ var _mtx sync.Mutex
 var _conn net.Conn
 
 type MotorDirection int
-
 const (
 	MD_Down MotorDirection = iota - 1
 	MD_Stop
 	MD_Up
 )
 
-type ButtonType int
+func (e MotorDirection) String() string {
+    switch e {
+    case MD_Down:
+        return "MD_Down"
+    case MD_Stop:
+        return "MD_Stop"
+	case MD_Up:
+		return "MD_Up"
+    default:
+        return "Unknown"
+    }
+}
 
+type ButtonType int
 const (
 	BT_HallUp ButtonType = iota
 	BT_HallDown
 	BT_Cab
 )
+
+func (e ButtonType) String() string {
+    switch e {
+    case BT_HallUp:
+        return "BT_HallUp"
+    case BT_HallDown:
+        return "BT_HallDown"
+	case BT_Cab:
+		return "BT_Cab"
+    default:
+        return "Unknown"
+    }
+}
 
 type ButtonEvent struct {
 	Floor  int

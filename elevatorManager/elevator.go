@@ -13,6 +13,15 @@ const (
 	EB_Idle
 )
 
+func (e ElevatorBehaviour) String() string {
+	switch e {
+	case EB_Moving: return "EB_Moving"
+	case EB_DoorOpen: return "EB_DoorOpen"
+	case EB_Idle: return "EB_Idle"
+	default: return "Unknown"
+	}
+}
+
 type Elevator struct {
 	Floor     		int
 	Requests  		[config.N_FLOORS][config.N_BUTTONS]bool

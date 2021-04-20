@@ -2,6 +2,7 @@ package orders
 
 import (
 	"elevatorproject/driver-go/elevio"
+	"fmt"
 	"time"
 )
 
@@ -14,6 +15,20 @@ const (
 	COMPLETED
 )
 
+func (e OrderState) String() string {
+    switch e {
+    case UNASSIGNED:
+        return "Unassigned"
+    case ASSIGNED:
+        return "Assigned"
+	case COMPLETED:
+		return "Completed"
+    default:
+        return "Unknown"
+    }
+}
+
+
 type OrderType int
 const (
 	HALL_UP OrderType = iota
@@ -21,7 +36,25 @@ const (
 	CAB
 )
 
+func (e OrderType) String() string {
+    switch e {
+    case HALL_UP:
+        return "HALL_UP"
+    case CAB:
+        return "CAB"
+	case HALL_DOWN:
+		return "HALL_DOWN"
+    default:
+        return "Unknown"
+    }
+}
+
+
 type Floor int
+
+func (f Floor) String() string {
+	return fmt.Sprintf("Floor %d", f)
+}
 
 type Order struct {
 	Orderstate         OrderState

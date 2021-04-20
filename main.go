@@ -4,9 +4,11 @@ import (
 
 	// "time"
 	"elevatorproject/config"
+	"elevatorproject/driver-go/elevio"
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/network/localip"
-	"elevatorproject/driver-go/elevio"
+	"time"
+
 	//"elevatorproject/network/peers"
 	//"elevatorproject/networking"
 	oh "elevatorproject/orderHandler"
@@ -38,14 +40,14 @@ func main() {
 	}
 	elevio.Init("localhost:15657", config.N_FLOORS)
 
-	ordersFromElevator := make(chan orders.Order)
-	elevStateChange := make(chan em.Elevator)
+	ordersFromElevator := make(chan orders.Order, 1)
+	elevStateChange := make(chan em.Elevator, 1)
 	backupChan := make(chan oh.DistributerState)
 
-	ordersToElevators := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
+	ordersToElevators := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 
-	enableIpBroadcast := make(chan bool)
-	broadcastReciever := make(chan string)
+	enableIpBroadcast := make(chan bool, 1)
+	broadcastReciever := make(chan string, 1)
 
 	checkpointxxxx := make(chan oh.DistributerState)
 	elevDisconnect := make(chan string)
@@ -74,6 +76,8 @@ func main() {
 	//go peers.Transmitter(config.PEER_PORT, id ,availabilityChan) //maybe not use this. Not really neccessary of network module alerts orderhandler of new conns and broken conns
 	//go peers.Receiver(config.PEER_PORT, peerUpdateChannel)
 
+	tick := time.NewTicker(3*time.Second)
+
 	for {
 		// select {
 		// 	case p<-peerpeerUpdateChannel:		
@@ -83,10 +87,11 @@ func main() {
 		// 		fmt.Printf("* Lost: %v\n", p.Lost)
 		// }
 		select{
-		case <-enableIpBroadcast:
+		case b:=<-enableIpBroadcast:
+			fmt.Printf("broadcast: %v\n", b)
 		case <-backupChan:
+		case <-tick.C:
+			broadcastReciever<-elevatorID
 		}
-
-
 	}
 }

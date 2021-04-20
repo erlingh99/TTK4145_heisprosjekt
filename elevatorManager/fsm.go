@@ -1,11 +1,10 @@
 package elevatorManager
 
 import (
-	"elevatorproject/driver-go/elevio"
-	"time"
 	"elevatorproject/config"
+	"elevatorproject/driver-go/elevio"
 	"fmt"
-	//"elevatorproject/orders"
+	"time"
 )
 
 
@@ -15,52 +14,12 @@ var elevator = Elevator{Floor: 			-1,
 						Obstruction:	false,
 						LastChange:  	time.Now()}
 
-func setAllLights() {
-	for floor := 0; floor < config.N_FLOORS; floor++ {
-		for btn := elevio.ButtonType(0); btn < 3; btn++ {
-			elevio.SetButtonLamp(btn, floor, true)
-		}
-	}
-}
-
 func fsm_onInit(ID string) {
 	elevio.SetMotorDirection(elevio.MD_Down)
 	elevator.Dirn = elevio.MD_Down
 	elevator.Behaviour = EB_Moving
 	elevator.ID = ID
 }
-
-// func fsm_buttonRequest(reqFloor int, reqBtn elevio.ButtonType) {
-
-// 	switch elevator.Behaviour {
-// 	case EB_DoorOpen:
-// 		if (elevator.Floor == reqFloor) {
-// 			timer_start()
-// 		} else {
-// 			elevator.Requests[reqFloor][reqBtn] = true
-// 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
-// 		}
-	
-// 	case EB_Moving:
-// 		elevator.Requests[reqFloor][reqBtn] = false
-// 		elevio.SetButtonLamp(reqBtn, reqFloor, true)
-	
-// 	case EB_Idle:
-// 		if (elevator.Floor == reqFloor) {
-// 			elevio.SetDoorOpenLamp(true)
-// 			timer_start()
-// 			elevator.Behaviour = EB_DoorOpen
-// 		} else {
-// 			elevator.Requests[reqFloor][reqBtn] = true
-// 			elevio.SetButtonLamp(reqBtn, reqFloor, true)
-// 			elevator.Dirn = request_chooseDirection()
-// 			elevio.SetMotorDirection(elevator.Dirn)
-// 			elevator.Behaviour = EB_Moving
-// 		}
-// 	default:
-
-// 	}
-// }
 
 func fsm_onFloorArrival(newFloor int) {
 
@@ -70,14 +29,11 @@ func fsm_onFloorArrival(newFloor int) {
 	switch elevator.Behaviour {
 	case EB_Moving:
 		if request_shouldStop() {
-			fmt.Println("EB_MOVING")
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
-			elevator = request_clearAtCurrentFloor()
+			//elevator = request_clearAtCurrentFloor()
 			timer_start()
-			//setAllLights()
 			elevator.Behaviour = EB_DoorOpen
-			//send order complete
 		}
 	default:
 	}
@@ -120,7 +76,6 @@ func fsm_setHallLights(hallLights [config.N_FLOORS][config.N_BUTTONS - 1]bool) {
 	}
 }
 
-
 func fsm_openDoor() {
 	timer_start()
 	elevator.Behaviour = EB_DoorOpen
@@ -129,6 +84,11 @@ func fsm_openDoor() {
 
 
 func fsm_onOrdersRecieved() {
-	elevator.Dirn = request_chooseDirection()
-	elevio.SetMotorDirection(elevator.Dirn)
+	if elevator.Behaviour != EB_DoorOpen {
+		elevator.Dirn = request_chooseDirection()
+		elevio.SetMotorDirection(elevator.Dirn)
+		if elevator.Dirn != elevio.MD_Stop {
+			elevator.Behaviour = EB_Moving
+		}		
+	}
 }

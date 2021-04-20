@@ -1,6 +1,6 @@
 package orders
 
-type OrderList []Order
+type OrderList []*Order
 
 func (ol *OrderList) ClearFinishedOrders() {
 	for i := 0; i < len(*ol); i++ {
@@ -12,19 +12,19 @@ func (ol *OrderList) ClearFinishedOrders() {
 	}
 }
 
-func (ol *OrderList) OrderUpdate(o Order) {
-	for i, order := range *ol {
-		if order.Orderstate == COMPLETED {
-			//ol.hallOrdersAtFloorCompleted(order.Destination)
-			ol.clearOrdersAtFloor(order.Destination, order.OriginElevator)
-			return
-		}
+func (ol *OrderList) OrderUpdate(o *Order) {	
+	if o.Orderstate == COMPLETED {
+		ol.clearOrdersAtFloor(o.Destination, o.OriginElevator)
+		return
+	}
 
-		if order.Equal(o) { //orderUpdate not new
+	for i, order := range *ol {		
+		if order.Equal(*o) { //orderUpdate not new
 			(*ol)[i] = o
 			return
 		}
 	}
+
 	*ol = append(*ol, o)
 }
 
@@ -37,7 +37,11 @@ func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
 func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
 	for _, o := range ol {
 		if o.Destination == f && o.Ordertype == CAB && o.OriginElevator == elevID {
+			o.Orderstate = COMPLETED
+			//ol.OrderUpdate(o)				
+		} else if o.Destination == f && o.Ordertype != CAB {
 			o.Orderstate = COMPLETED	
-		}
+			//ol.OrderUpdate(o)		
+		}		
 	}
 }

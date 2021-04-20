@@ -31,7 +31,7 @@ func ElevatorManager(ID 		string,
 	timer_init()
 	fsm_onInit(ID)
 	//shareState <- elevator
-	ticker := time.NewTicker(1* time.Second)
+	ticker := time.NewTicker(2*time.Second)
 
     for {
 		//Main loop checking for inputs on any of the channels
@@ -47,13 +47,15 @@ func ElevatorManager(ID 		string,
 				//make order
 				o := orders.NewOrder(v, elevator.ID)
 				orderOut <- o
+				fmt.Printf("new order: %v\n", o)
 			
 			//When elevator passes a floor sensor
-			case f := <- drvFloors:
-				fmt.Println("Hit floor")
+			case f := <- drvFloors:				
+				fmt.Printf("Hit floor %d\n",f)
 				fsm_onFloorArrival(f)
+				
 				//Update master that order is completed if a floor with order is hit
-				if request_shouldStop() {
+				if elevator.Behaviour == EB_DoorOpen{
 					o := orders.Order{
 									Orderstate:  	orders.COMPLETED,
 									Ordertype:   	orders.CAB,
@@ -61,22 +63,25 @@ func ElevatorManager(ID 		string,
 									Timestamp:   	time.Now(),
 									OriginElevator:	elevator.ID}
 					orderOut <- o
+					fmt.Printf("order complete %v\n", o.Destination)
 				}
-				
-				
+			
 				
 			//When there is an obstruction
 			case b := <- drvObstr:
 				fmt.Printf("Obstruction: %v\n", b)
-				//If obsturction, the timer will be restared until the obstruction os gone
+				//If obsturction, the timer will be restared until the obstruction is gone
 				elevator.Obstruction = b
-				if b && elevator.Behaviour == EB_DoorOpen{
+				if !b && elevator.Behaviour == EB_DoorOpen{
 					timer_start()
 				}				
 			
 			//when there comes a new orders from the master elevator
 			case newOrders := <-ordersIn:
-				fmt.Println("Order in")
+				//fmt.Println("Order in")
+				if newOrders[elevator.ID] != elevator.Requests {
+					fmt.Println(newOrders)
+				}
 				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
 
 				_, cabLights := combine.Demux(newOrders[elevator.ID])				
@@ -100,12 +105,8 @@ func ElevatorManager(ID 		string,
 				fsm_onDoorTimeout()	
 			
 			case <- ticker.C:
-				fmt.Println("Ticker")
-				shareState <- elevator
-
+				shareState <- elevator				
         }
-		elevator.LastChange = time.Now()
-
-				
+		elevator.LastChange = time.Now()				
 	}
 }
