@@ -41,7 +41,7 @@ func (e Elevator) OrdersFromElevRequests() orders.OrderList{
 				o := orders.Order{Orderstate: 		orders.UNASSIGNED,
 									OriginElevator: e.ID,
 									Destination: 	orders.Floor(i),
-									OrderType:		orders.OrderType(j)
+									Ordertype:		orders.OrderType(j),
 									Timestamp: 		time.Now()}
 				subList = append(subList, &o)
 			}

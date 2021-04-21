@@ -202,10 +202,9 @@ func MasterTransmitter(port int, errorChan chan<- error, stopChan <-chan bool, c
 		}
 		typeNames[i] = reflect.TypeOf(ch).Elem().String()
 	}
-	append(selectCases, reflect.SelectCase{
+	selectCases = append(selectCases, reflect.SelectCase{
 		Dir: reflect.SelectRecv,
-		Chan: reflect.ValueOf(stopChan)
-	})
+		Chan: reflect.ValueOf(stopChan)})
 
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
@@ -219,7 +218,7 @@ func MasterTransmitter(port int, errorChan chan<- error, stopChan <-chan bool, c
 		for _, conn := range conns {
 			buf, _ := json.Marshal(value.Interface())
 	
-			i, err = conn.Write([]byte(typeNames[chosen] + string(buf)))
+			i, err := conn.Write([]byte(typeNames[chosen] + string(buf)))
 	
 			if err != nil {
 				// Here we should have a way to remove conns that are no longer in use, but it will look a little messy,
@@ -238,7 +237,7 @@ func MasterTransmitter(port int, errorChan chan<- error, stopChan <-chan bool, c
 
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
-func MasterReceiver(port int, errorChan chan<- error, stopChan <-chan bool, idIpPairCh chan<- IdIpPair, chans ...interface{}) {
+func MasterReceiver(port int, errorChan chan<- error, stopChan chan bool, idIpPairCh chan<- IdIpPair, chans ...interface{}) {
 	checkArgs(chans...)
 
 	addr := fmt.Sprintf(":%d", port)

@@ -4,7 +4,7 @@ import (
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/orders"
 	"elevatorproject/config"
-	"elevatorproject/combine"
+	"elevatorproject/utils"
 	"fmt"
 	"time"
 )
@@ -14,6 +14,14 @@ const (
 	SLAVE distributerMode = iota
 	MASTER
 )
+
+func (d distributerMode) String() string {
+	switch d {
+	case MASTER: return "MASTER"
+	case SLAVE: return "SLAVE"
+	default: return "Unknown"		
+	}
+}
 
 type DistributerState struct {
 	Mode           	distributerMode
@@ -45,6 +53,7 @@ func Distributer(	ID 					string,
 	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
+		fmt.Println(handler.Mode)
 		switch handler.Mode {
 		case SLAVE:
 			select {
@@ -58,7 +67,7 @@ func Distributer(	ID 					string,
 			case <-masterTimeoutTimer.C: //master has disconnected
 				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
-				enableIpBroadcast <- true
+				//enableIpBroadcast <- true
 
 			case cp := <-checkpoint:
 				if cp.Timestamp.After(handler.Timestamp) {
@@ -72,7 +81,7 @@ func Distributer(	ID 					string,
 				fmt.Println("Error with connection to Master")
 				handler.Mode = MASTER
 				masterTimeoutTimer.Stop()
-				enableIpBroadcast <- true				
+				//enableIpBroadcast <- true				
 		
 			case <-orderUpdate: //Do nothing, master responsibility
 			case <-elevatorStateUpdate:
@@ -108,14 +117,12 @@ func Distributer(	ID 					string,
 				default:						
 				}									
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
-				//connect to other master msg=ip
-				//continue
 
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
 				delete(handler.ElevatorStates, elevID)	
 									
-			case cp := <-checkpoint:
+			case <-checkpoint:
 				continue //do nothing, slave responsibility
 			}
 
@@ -145,11 +152,11 @@ func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.El
 	delegatedOrders := make(map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 
 	for k, elev := range elevatorStates {
-		elevOrders := combine.Mux(hallOrders[k], input.States[k].CabRequests)		
+		elevOrders := utils.Mux(hallOrders[k], input.States[k].CabRequests)		
 		delegatedOrders[elev.ID] = elevOrders		
 	}
 
 	//want to send lights on a [4][3]bool chan
-	delegatedOrders["HallLights"] = combine.Mux(sharedLights, [config.N_FLOORS]bool{false, false, false, false}) 
+	delegatedOrders["HallLights"] = utils.Mux(sharedLights, [config.N_FLOORS]bool{false, false, false, false}) 
 	return delegatedOrders, nil
 }

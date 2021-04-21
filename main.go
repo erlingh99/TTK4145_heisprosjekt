@@ -1,18 +1,17 @@
 package main
 
 import (
-
-	// "time"
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/network/localip"
+	"elevatorproject/utils"
 	"time"
 
-	//"elevatorproject/network/peers"
-	//"elevatorproject/networking"
-	networking "elevatorproject/networking_bcast"
+	"elevatorproject/network/peers"
 	oh "elevatorproject/orderHandler"
+
+	bcast_ack "elevatorproject/networking_bcast"
 	"elevatorproject/orders"
 	"flag"
 	"fmt"
@@ -39,58 +38,108 @@ func main() {
 	}
 	elevio.Init("localhost:15657", config.N_FLOORS)
 
-	ordersFromElevator := make(chan orders.Order, 1)
-	elevStateChange := make(chan em.Elevator, 1)
-	backupChan := make(chan oh.DistributerState)
+	ordersFromElevatorOut := make(chan orders.Order)
+	ordersFromElevatorIn := make(chan orders.Order)
 
-	ordersToElevators := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 
-	enableIpBroadcast := make(chan bool, 1)
-	broadcastReciever := make(chan string, 1)
+	elevStateChangeOut := make(chan em.Elevator)
+	elevStateChangeIn := make(chan em.Elevator)
 
-	checkpointxxxx := make(chan oh.DistributerState)
+
+	backupOut := make(chan oh.DistributerState)
+	backupIn := make(chan oh.DistributerState)
+
+	ordersToElevatorsOut := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
+	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
+
+	broadcastReciever := make(chan string) //obsolete
+	enableIpBroadcast := make(chan bool)   //obsolete
 	elevDisconnect := make(chan string)
-
-	//go peers.Transmitter(config.BCAST_PORT, localip, enableIpBroadcast) //can use peers to broadcast since only one thing is broadcasted
-	//go peers.Receiver(config.BCAST_PORT, broadcastReciever)
-
-	
 
 
 	// Start orderHandler
-	go oh.Distributer(elevatorID, ordersFromElevator, elevStateChange, broadcastReciever, checkpointxxxx, elevDisconnect, ordersToElevators, enableIpBroadcast, backupChan)
+	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, broadcastReciever, backupIn, elevDisconnect, ordersToElevatorsOut, enableIpBroadcast, backupOut)
 
 	// Start elevatorManager
-	go em.ElevatorManager(elevatorID, ordersFromElevator, ordersToElevators, elevStateChange)
-
-	// Start networking
-	//go networking.Init(chan1, chan2, chan3, chan4, chan5)
+	go em.ElevatorManager(elevatorID, ordersToElevatorsIn, ordersFromElevatorOut, elevStateChangeOut)
 
 
 
-	//for oversikt
-	//availabilityChan := make(chan bool)
-	//peerUpdateChannel := make(chan peers.PeerUpdate)
 
-	//go peers.Transmitter(config.PEER_PORT, id ,availabilityChan) //maybe not use this. Not really neccessary of network module alerts orderhandler of new conns and broken conns
-	//go peers.Receiver(config.PEER_PORT, peerUpdateChannel)
+	peerIDs := make([]string, 0)
+	waitingForAcks := make(bcast_ack.AckList, 0)
 
-	tick := time.NewTicker(3*time.Second)
+	AckRecieved := make(chan bcast_ack.AcknowledgeMsg)
+	AckSend := make(chan bcast_ack.AcknowledgeMsg)
+	AckNeeded := make(chan bcast_ack.AcknowledgeCtrl)
+
+
+	//recvChans: ordersFromElevatorIn, elevStateChangeIn, backupIn, ordersToElevatorsIn, AckRecieved
+	//sendChans: ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend
+
+
+	go bcast_ack.Transmitter(elevatorID, config.BCAST_PORT, AckNeeded, ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend)
+	go bcast_ack.Receiver(elevatorID, config.BCAST_PORT, AckSend, ordersFromElevatorIn, elevStateChangeIn, backupIn, ordersToElevatorsIn, AckRecieved)
+
+	peerChan := make(chan peers.PeerUpdate)
+	transmitEnable := make(chan bool)
+	go peers.Transmitter(config.PEER_PORT, elevatorID, transmitEnable)
+	go peers.Receiver(config.PEER_PORT, peerChan)
+
+	msgResendTicker := time.NewTicker(config.RESEND_RATE)
 
 	for {
-		// select {
-		// 	case p<-peerpeerUpdateChannel:		
-		// 		fmt.Println("PEER UPDATE")
-		// 		fmt.Printf("* Peers: %v\n", p.Peers)
-		// 		fmt.Printf("* New: %v\n", p.New)
-		// 		fmt.Printf("* Lost: %v\n", p.Lost)
-		// }
-		select{
-		case b:=<-enableIpBroadcast:
-			fmt.Printf("broadcast: %v\n", b)
-		case <-backupChan:
-		case <-tick.C:
-			broadcastReciever<-elevatorID
+		select {
+		case p := <-peerChan:		
+			fmt.Println("PEER UPDATE")
+			fmt.Printf("* Peers: %v\n", p.Peers)
+			fmt.Printf("* New: %v\n", p.New)
+			fmt.Printf("* Lost: %v\n", p.Lost)
+
+			peerIDs = append(peerIDs, p.New)
+
+
+			if len(p.Lost) > 0 {		
+				for _, lostPeer := range p.Lost {
+					peerIDs = utils.Remove(peerIDs, lostPeer)
+					elevDisconnect <- lostPeer
+				}
+			}
+
+		case <-msgResendTicker.C:
+			fmt.Println("ack ticker")
+			for _, ack := range waitingForAcks {
+				if time.Now().After(ack.SendTime.Add(time.Duration(ack.SendNum) * config.RESEND_RATE)) {
+					// use reflect with ack.msg to resend on correct sendchan
+					bcast_ack.ResendMsg(ack.Msg, ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend)
+				}
+			}
+		
+		case ack := <-AckRecieved:
+			if ack.ElevID == elevatorID {
+				continue
+			}
+			waitingForAcks.AckRecieved(&ack)
+			fmt.Println("ack rev")
+
+		case ack := <-AckNeeded:
+			fmt.Println("ack needed")			
+			waitingForAcks.AddAck(&ack)
 		}
-	}
+
+		waitingForAcks.RemoveCompletedAcks(peerIDs)
+		regElev := waitingForAcks.CheckForTimedoutSends()
+
+		//find what elevators are not responding
+		for _, p := range peerIDs {
+			if !utils.Contains(regElev, p) {
+				//p is not responding
+				peerIDs = utils.Remove(peerIDs, p)
+				elevDisconnect <- p
+				//might be a problem if good elevator is removed, because it will not reconnect with peers then
+
+				fmt.Println("peer timedout" + p)
+			}
+		}
+	}	
 }

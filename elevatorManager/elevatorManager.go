@@ -1,7 +1,7 @@
 package elevatorManager
 
 import (
-	"elevatorproject/combine"
+	"elevatorproject/utils"
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
 	"elevatorproject/orders"
@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-func ElevatorManager(ID 		string,
-					orderOut 	chan<- orders.Order,
+func ElevatorManager(ID 		string,					
 					ordersIn 	<-chan map[string][config.N_FLOORS][config.N_BUTTONS]bool,
+					orderOut 	chan<- orders.Order,
 					shareState  chan<- Elevator) {
 
 	fmt.Printf("Elevator Manager started: %s\n", ID)	
@@ -84,8 +84,8 @@ func ElevatorManager(ID 		string,
 				}
 				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
 
-				_, cabLights := combine.Demux(newOrders[elevator.ID])				
-				hallLights, _ := combine.Demux(newOrders["HallLights"])
+				_, cabLights := utils.Demux(newOrders[elevator.ID])				
+				hallLights, _ := utils.Demux(newOrders["HallLights"])
 
 				//set lights
 				fsm_setCabLights(cabLights)

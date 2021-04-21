@@ -31,9 +31,9 @@ func TestOrderHandler(t *testing.T) {
 	o4 := orders.NewOrder(elevio.ButtonEvent{Floor: 2, Button: elevio.BT_HallDown}, "heis2")
 	o5 := orders.NewOrder(elevio.ButtonEvent{Floor: 3, Button: elevio.BT_HallDown}, "heis1")
 	//t.Log("orders created")
-	ol := orders.OrderList{o1,o2,o3,o4}
+	ol := orders.OrderList{&o1,&o2,&o3,&o4}
 	//t.Log("list created")
-	ol.OrderUpdate(o5)
+	ol.OrderUpdate(&o5)
 	//t.Log("list appended")
 
 	
@@ -59,7 +59,7 @@ func TestOrderHandler(t *testing.T) {
 	t.Log(output)
 
 	o3.Orderstate = orders.COMPLETED
-	ol.OrderUpdate(o3)
+	//ol.OrderUpdate(o3)
 
 	hall, cab = OrderListToHRAFormat(ol)
 
