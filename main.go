@@ -121,7 +121,7 @@ func main() {
 				continue
 			}
 			waitingForAcks.AckRecieved(&ack)
-			fmt.Println("ack rev")
+			fmt.Println("ack recv")
 
 		case ack := <-AckNeeded:
 			// fmt.Println("ack needed")

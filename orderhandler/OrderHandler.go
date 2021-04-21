@@ -50,7 +50,7 @@ func Distributer(	ID 					string,
 				ID:				ID,
 				Timestamp: 		time.Now()}
 
-	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
+	//masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
 		fmt.Println(handler.Mode)
@@ -64,12 +64,12 @@ func Distributer(	ID 					string,
 					<-masterTimeoutTimer.C
 				}
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
-			*/
+			
 			case <-masterTimeoutTimer.C: //master has disconnected
 				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
 				//enableIpBroadcast <- true
-			
+			*/
 			case cp := <-checkpoint:
 				if cp.Timestamp.After(handler.Timestamp) {
 					fmt.Println("checkpoint recieved")

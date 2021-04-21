@@ -53,13 +53,14 @@ func (al *AckList) RemoveCompletedAcks(peers []string) {
 			al2 = append(al2, ack)
 		}
 	}	
-	al = &al2
+	*al = al2
 }
 
 func (al *AckList) CheckForTimedoutSends() []string {
 	for i , acks := range *al {
 		if acks.SendNum > config.MAX_RESENDS {
 			fmt.Printf("Couldn't send %+v\n", acks.Msg)
+			fmt.Println(acks.ElevIDs)
 			(*al)[i] = (*al)[len(*al)-1]
 			*al = (*al)[:len(*al)-1]
 			return acks.ElevIDs
@@ -96,7 +97,7 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 
 		if typeNames[chosen] != "bcast_with_ackCtrl.AcknowledgeMsg" {
-			fmt.Println(typeNames[chosen])
+			
 			AckNeeded <- AcknowledgeCtrl{	Msg: 		value,
 											ID:			string(buf), 
 											SendTime: 	time.Now(),
