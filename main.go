@@ -11,6 +11,7 @@ import (
 
 	//"elevatorproject/network/peers"
 	//"elevatorproject/networking"
+	networking "elevatorproject/networking_bcast"
 	oh "elevatorproject/orderHandler"
 	"elevatorproject/orders"
 	"flag"
@@ -23,9 +24,7 @@ func main() {
 
 	var elevatorID string
 	flag.StringVar(&elevatorID, "id", "", "id of this peer")
-	flag.Parse()
-
-	
+	flag.Parse()	
 
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the

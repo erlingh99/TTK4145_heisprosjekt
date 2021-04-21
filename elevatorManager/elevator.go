@@ -2,6 +2,7 @@ package elevatorManager
 
 import (
 	"elevatorproject/config"
+	"elevatorproject/orders"
 	"elevatorproject/driver-go/elevio"
 	"time"	
 )
@@ -30,4 +31,21 @@ type Elevator struct {
 	Obstruction 	bool
 	ID        		string //unique identifier
 	LastChange		time.Time //useful for ordering messages arriving in disorder
+}
+
+func (e Elevator) OrdersFromElevRequests() orders.OrderList{
+	subList := make(orders.OrderList, 0)
+	for i := 0; i<config.N_FLOORS; i++ {
+		for j := 0; j<config.N_BUTTONS; j++ {
+			if e.Requests[i][j] {
+				o := orders.Order{Orderstate: 		orders.UNASSIGNED,
+									OriginElevator: e.ID,
+									Destination: 	orders.Floor(i),
+									OrderType:		orders.OrderType(j)
+									Timestamp: 		time.Now()}
+				subList = append(subList, &o)
+			}
+		}
+	}
+	return subList
 }

@@ -22,7 +22,7 @@ var recvIntChannels = list.New()
 var recvIntErrChannels = list.New()
 
 var addrRecvChannel = make(chan net.Addr)
-var addrSendChannel = make(chan int)
+// var addrSendChannel = make(chan int)
 var connectPortRecvChannel = make(chan int)
 
 var MasterIP string
@@ -34,6 +34,9 @@ var iAmMaster = false
 
 var SlaveIPs []string
 var SlaveLastAliveMsgs []time.Time
+
+var myID string
+var enableBroadcast = false
 
 // Used for accepting incoming connections
 var NextOpenPort = 20003
@@ -59,7 +62,7 @@ func Init(
 
 	// Channels from orderhandler:
 	delegateOrders 		<-chan map[string][][]bool,
-	IPout 				<-chan string,
+	broadCastEnableCh 	<-chan string,
 	backupChan 			<-chan orderhandler.OrderHandlerState,
 	
 	// Channels to elevatormanager:
@@ -69,6 +72,8 @@ func Init(
 	ordersOut			<-chan orders.Order
 	) {
 	fmt.Println("Init Networking")
+
+	myID = elevatorID
 	
 	// Make channels to network:
 	ordersToNetwork := 					make(chan<- orders.Order)
@@ -94,7 +99,9 @@ func Init(
 	// go tcp.Slave(MasterIP, config.LISTEN_PORT, receiverErrors, ordersFromNetwork, stringsFromNetwork, orderhandlerstatesFromNetwork, orderTablesFromNetwork)
 
 	// Spawn side threads
-	go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	// go ListenForBroadcastedIP(config.BROADCAST_PORT)
+	go bcast.Receiver(config.BROADCAST_PORT, aliveMsg)
+	go Broadcaster()
 	go TimeoutController()
 	go SlaveTimeoutController(aliveMessagesFromNetwork, aliveMessagesToNetwork)
 	
@@ -107,11 +114,8 @@ func Init(
 				// Send orderTable to all elevators on the network
 				orderTablesToNetwork<- orderTable
 			}
-		case ip := <-IPout:
-			if iAmMaster {
-				// Broadcast ip
-				// This is did in timeoutController instead
-			}
+		case enableBroadcast = <-broadCastEnableCh:
+			// Broadcast ip
 		case backup := <-backupChan:
 			if iAmMaster {
 				// Send backup to all elevators on the network
@@ -179,22 +183,14 @@ func Init(
 	// go ChannelReader()
 }
 
-func TimeoutController() {
+func Broadcaster() {
+	bcastCh := make(chan string)
+	go bcast.Transmitter(config.BROADCAST_PORT, bcastCh)
 	for {
 		time.Sleep(config.MASTER_BROADCAST_INTERVAL)
-		
-		if !iAmMaster && time.Now().After(AddrRecvLastTime.Add(config.MASTER_BROADCAST_LISTEN_TIMEOUT)) {
-			// Timeout
-			fmt.Println("Timeout. I make myself master")
-			iAmMaster = true
-			go bcast.Transmitter(config.BROADCAST_PORT, addrSendChannel)
-		}
-	
-		if iAmMaster {
-			message := "I am your master"
-			// message := NextOpenPort
-			fmt.Printf("Broadcasting message: %d\n", message)
-			addrSendChannel <- message
+
+		if enableBroadcast {
+			bcastCh<- myID
 		}
 	}
 }

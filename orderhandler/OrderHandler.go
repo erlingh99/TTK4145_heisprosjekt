@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-const (
-	IDLE_CONN_TIMEOUT         = 2000  //ms
-	ORDER_COMPLETION_MAX_TIME = 10000 //ms, 10 sec
-)
-
 type distributerMode int
 const (
 	SLAVE distributerMode = iota
@@ -31,12 +26,10 @@ type DistributerState struct {
 func Distributer(	ID 					string,
 	
 					orderUpdate 		<-chan orders.Order,		//orders from elevators
-					elevatorStateUpdate <-chan em.Elevator,			//states, from elevators
+					elevatorStateUpdate <-chan em.Elevator,			//states from elevators
 					broadcastRx			<-chan string,				//alivemsg from master
 					checkpoint 			<-chan DistributerState,	//checkpoint from master
-					//newConnection 		<-chan string,				//new Elevator has conneceted (master responsibilty) LET NETWORK DEAL WITH
-					elevDisconnect 		<-chan string,				//connection lost (master responsibility)
-					//peerUpdate			<-chan peers.PeerUpdate,	
+					elevDisconnect 		<-chan string,				//error reaching elevator "elevDisconnect"
 
 					delegateOrders 		chan<- map[string][config.N_FLOORS][config.N_BUTTONS]bool,	//master delegates to elevators
 					enableIpBroadcast	chan<- bool,				//enable broadcast of ip (only master broadcasts)
@@ -49,7 +42,7 @@ func Distributer(	ID 					string,
 				ID:				ID,
 				Timestamp: 		time.Now()}
 
-	masterTimeoutTimer := time.NewTimer(IDLE_CONN_TIMEOUT * time.Millisecond)
+	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
 		switch handler.Mode {
@@ -60,7 +53,7 @@ func Distributer(	ID 					string,
 				if !masterTimeoutTimer.Stop() {
 					<-masterTimeoutTimer.C
 				}
-				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
+				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
 
 			case <-masterTimeoutTimer.C: //master has disconnected
 				fmt.Println("masterTimeout")
@@ -72,6 +65,7 @@ func Distributer(	ID 					string,
 					fmt.Println("checkpoint recieved")
 					handler.AllOrders = cp.AllOrders
 					handler.ElevatorStates = cp.ElevatorStates
+					handler.Timestamp =cp.Timestamp
 				}
 
 			case <-elevDisconnect:
@@ -79,6 +73,9 @@ func Distributer(	ID 					string,
 				handler.Mode = MASTER
 				masterTimeoutTimer.Stop()
 				enableIpBroadcast <- true				
+		
+			case <-orderUpdate: //Do nothing, master responsibility
+			case <-elevatorStateUpdate:
 			}
 
 		case MASTER:
@@ -91,7 +88,7 @@ func Distributer(	ID 					string,
 					fmt.Println("new elevator registered: " + newState.ID)
 					handler.ElevatorStates[newState.ID] = newState
 					//handle possible new orders
-					newOrders := OrdersFromElev(newState)
+					newOrders := newState.OrdersFromElevRequests()
 					handler.AllOrders.OrderUpdateList(newOrders)
 
 				} else if newState.LastChange.After(handler.ElevatorStates[newState.ID].LastChange) {
@@ -109,81 +106,50 @@ func Distributer(	ID 					string,
 				select {
 				case <-masterTimeoutTimer.C:
 				default:						
-				}					
-				
-				masterTimeoutTimer.Reset(IDLE_CONN_TIMEOUT * time.Millisecond)
+				}									
+				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
 				//connect to other master msg=ip
 				//continue
 
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
-				delete(handler.ElevatorStates, elevID)				
+				delete(handler.ElevatorStates, elevID)	
+									
+			case cp := <-checkpoint:
+				continue //do nothing, slave responsibility
 			}
+
 			delegatedOrders, err := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
 			if err != nil {
 				continue
 			} 
 			handler.Timestamp = time.Now()
 			handler.AllOrders.ClearFinishedOrders()		
-			delegateOrders <- delegatedOrders //need to change assigned elevator in Order struct
+			delegateOrders <- delegatedOrders
 			backupChan <- handler
-			//fmt.Println("Orders delegated, backup sent")
-			
+			//fmt.Println("Orders delegated, backup sent")			
 		}
 	}
 }
 
 func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
 	input := toHRAInput(orders, elevatorStates)
-	lights := input.HallOrder
+	sharedLights := input.HallOrder
 
 	hallOrders, err := Assigner(input)
 
-	if err != nil {
-		//fmt.Printf("Error distributing orders: %e", err)
+	if err != nil {		
 		return nil, err
 	}
 
 	delegatedOrders := make(map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 
 	for k, elev := range elevatorStates {
-		elevOrders := combine.Mux(hallOrders[k], input.States[k].CabRequests)
-		
-		delegatedOrders[elev.ID] = elevOrders
-		
+		elevOrders := combine.Mux(hallOrders[k], input.States[k].CabRequests)		
+		delegatedOrders[elev.ID] = elevOrders		
 	}
 
 	//want to send lights on a [4][3]bool chan
-	delegatedOrders["HallLights"] = combine.Mux(lights, [config.N_FLOORS]bool{false, false, false, false}) 
+	delegatedOrders["HallLights"] = combine.Mux(sharedLights, [config.N_FLOORS]bool{false, false, false, false}) 
 	return delegatedOrders, nil
 }
-
-func OrdersFromElev(elev em.Elevator) orders.OrderList{
-
-	subList := make(orders.OrderList, 0)
-	for i := 0; i<config.N_FLOORS; i++ {
-		for j := 0; j<config.N_BUTTONS; j++ {
-			if elev.Requests[i][j] {
-				o := orders.Order{Orderstate: 		orders.UNASSIGNED,
-									OriginElevator: elev.ID,
-									Destination: 	orders.Floor(i),
-									Timestamp: 		time.Now()}
-				switch j {
-				case 0: o.Ordertype = orders.HALL_UP
-				case 1: o.Ordertype = orders.HALL_DOWN
-				case 2: o.Ordertype = orders.CAB
-				}
-				subList = append(subList, &o)
-			}
-		}
-	}
-	return subList
-}
-
-
-//TODO
-
-//input ouput
-//connections
-//order fields, assign values or remove?
-//order complete messages
