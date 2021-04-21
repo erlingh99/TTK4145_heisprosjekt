@@ -52,13 +52,13 @@ func main() {
 	ordersToElevatorsOut := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
 
-	broadcastReciever := make(chan string) //obsolete
-	enableIpBroadcast := make(chan bool)   //obsolete
+	//broadcastReciever := make(chan string) //obsolete
+	//enableIpBroadcast := make(chan bool)   //obsolete
 	elevDisconnect := make(chan string)
 
 
 	// Start orderHandler
-	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, broadcastReciever, backupIn, elevDisconnect, ordersToElevatorsOut, enableIpBroadcast, backupOut)
+	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, /*broadcastReciever,*/ backupIn, elevDisconnect, ordersToElevatorsOut, /*enableIpBroadcast,*/ backupOut)
 
 	// Start elevatorManager
 	go em.ElevatorManager(elevatorID, ordersToElevatorsIn, ordersFromElevatorOut, elevStateChangeOut)
@@ -101,13 +101,14 @@ func main() {
 
 			if len(p.Lost) > 0 {		
 				for _, lostPeer := range p.Lost {
+					fmt.Println("Lost peer " + lostPeer)
 					peerIDs = utils.Remove(peerIDs, lostPeer)
 					elevDisconnect <- lostPeer
 				}
 			}
 
 		case <-msgResendTicker.C:
-			fmt.Println("ack ticker")
+			//fmt.Println("ack ticker")
 			for _, ack := range waitingForAcks {
 				if time.Now().After(ack.SendTime.Add(time.Duration(ack.SendNum) * config.RESEND_RATE)) {
 					// use reflect with ack.msg to resend on correct sendchan
@@ -123,13 +124,14 @@ func main() {
 			fmt.Println("ack rev")
 
 		case ack := <-AckNeeded:
-			fmt.Println("ack needed")			
+			// fmt.Println("ack needed")
+			// fmt.Println(ack.Msg)		
 			waitingForAcks.AddAck(&ack)
 		}
 
 		waitingForAcks.RemoveCompletedAcks(peerIDs)
 		regElev := waitingForAcks.CheckForTimedoutSends()
-
+		if len(regElev) == 0 {continue}
 		//find what elevators are not responding
 		for _, p := range peerIDs {
 			if !utils.Contains(regElev, p) {

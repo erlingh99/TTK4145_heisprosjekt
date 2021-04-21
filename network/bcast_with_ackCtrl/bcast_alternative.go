@@ -47,7 +47,6 @@ func (al *AckList) AckRecieved(a *AcknowledgeMsg) {
 }
 
 func (al *AckList) RemoveCompletedAcks(peers []string) {
-	fmt.Println("Removing completed acks")
 	al2 := make(AckList, 0)
 	for _, ack := range *al {
 		if !utils.StringArrEqual(ack.ElevIDs, peers) {
@@ -58,9 +57,11 @@ func (al *AckList) RemoveCompletedAcks(peers []string) {
 }
 
 func (al *AckList) CheckForTimedoutSends() []string {
-	for _ , acks := range *al {
+	for i , acks := range *al {
 		if acks.SendNum > config.MAX_RESENDS {
 			fmt.Printf("Couldn't send %+v\n", acks.Msg)
+			(*al)[i] = (*al)[len(*al)-1]
+			*al = (*al)[:len(*al)-1]
 			return acks.ElevIDs
 		}
 	}
@@ -94,8 +95,8 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 		buf, _ := json.Marshal(value.Interface())
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 
-		if typeNames[chosen] != "AcknowledgeMsg" {
-			//er v sendt når man kommer hit???
+		if typeNames[chosen] != "bcast_with_ackCtrl.AcknowledgeMsg" {
+			fmt.Println(typeNames[chosen])
 			AckNeeded <- AcknowledgeCtrl{	Msg: 		value,
 											ID:			string(buf), 
 											SendTime: 	time.Now(),
@@ -129,7 +130,7 @@ func Receiver(id string, port int, ackSend chan<- AcknowledgeMsg, chans ...inter
 		n, _, e := conn.ReadFrom(buf[0:])
 
 		if e != nil {
-			//fmt.Printf("bcast.Receiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
+			fmt.Printf("bcast.Receiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
 			continue
 		}
 
@@ -146,7 +147,7 @@ func Receiver(id string, port int, ackSend chan<- AcknowledgeMsg, chans ...inter
 					Send: reflect.Indirect(v),
 				}})
 
-				if  reflect.TypeOf(ch).Elem().String() != "AcknowledgeMsg" {
+				if  reflect.TypeOf(ch).Elem().String() != "bcast_with_ackCtrl.AcknowledgeMsg" {
 					//er v sendt når man kommer hit???
 					ackSend <- AcknowledgeMsg{	ID:			string(buf[0:n]), 											
 												ElevID: 	id}
