@@ -80,7 +80,7 @@ func ElevatorManager(ID 		string,
 			case newOrders := <-ordersIn:
 				//fmt.Println("Order in")
 				if newOrders[elevator.ID] != elevator.Requests {
-					fmt.Println(newOrders)
+					//fmt.Println(newOrders)
 				}
 				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
 

@@ -46,14 +46,14 @@ func Distributer(	ID 					string,
 	handler := DistributerState{
 				ElevatorStates: make(map[string]em.Elevator),
 				AllOrders:      make(orders.OrderList, 0),
-				Mode:           SLAVE,
+				Mode:           MASTER,
 				ID:				ID,
 				Timestamp: 		time.Now()}
 
 	//masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
-		fmt.Println(handler.Mode)
+		//fmt.Println(handler.Mode)
 		switch handler.Mode {
 		case SLAVE:
 			select {
@@ -75,7 +75,7 @@ func Distributer(	ID 					string,
 					fmt.Println("checkpoint recieved")
 					handler.AllOrders = cp.AllOrders
 					handler.ElevatorStates = cp.ElevatorStates
-					handler.Timestamp =cp.Timestamp
+					handler.Timestamp = cp.Timestamp
 				}
 
 			case <-elevDisconnect:
