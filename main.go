@@ -154,7 +154,7 @@ func main() {
 }
 
 func Broadcaster(port int, enableBcast <-chan bool, id string) {
-	enabled := true
+	enabled := false
 	bcastCh := make(chan string)
 	go bcast.Transmitter(port, bcastCh)
 	for {
