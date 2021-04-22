@@ -64,7 +64,10 @@ func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, OrderList, []string) 
 
 		if b {
 			timedOutElevs = append(timedOutElevs, o.AssignedElevator)
-			o.Orderstate = UNASSIGNED
+			if o.Ordertype != CAB {
+				o.Orderstate = UNASSIGNED
+			}
+			
 		}
 	}
 	return olUnassigned, olAsssigned, timedOutElevs
