@@ -46,7 +46,7 @@ func Distributer(	ID 					string,
 	handler := DistributerState{
 				ElevatorStates: make(map[string]em.Elevator),
 				AllOrders:      make(orders.OrderList, 0),
-				Mode:           MASTER,
+				Mode:           SLAVE,
 				ID:				ID,
 				Timestamp: 		time.Now()}
 
