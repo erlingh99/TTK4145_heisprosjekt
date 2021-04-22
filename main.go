@@ -108,9 +108,11 @@ func main() {
 
 			if len(p.Lost) > 0 {		
 				for _, lostPeer := range p.Lost {
-					fmt.Println("Lost peer " + lostPeer)
-					peerIDs = utils.Remove(peerIDs, lostPeer)
-					elevDisconnect <- lostPeer
+					if lostPeer != elevatorID {
+						fmt.Println("Lost peer " + lostPeer)
+						peerIDs = utils.Remove(peerIDs, lostPeer)
+						elevDisconnect <- lostPeer
+					}
 				}
 			}
 
@@ -143,12 +145,14 @@ func main() {
 		//find what elevators are not responding
 		for _, p := range peerIDs {
 			if !utils.Contains(regElev, p) {
-				//p is not responding
-				peerIDs = utils.Remove(peerIDs, p)
-				elevDisconnect <- p
-				//might be a problem if good elevator is removed, because it will not reconnect with peers then
+				if p != elevatorID {
+					//foreign p is not responding
+					peerIDs = utils.Remove(peerIDs, p)
+					elevDisconnect <- p
+					//might be a problem if good elevator is removed, because it will not reconnect with peers then
 
-				fmt.Println("peer timedout" + p)
+					fmt.Println("peer timedout" + p)
+				}
 			}
 		}
 	}	
