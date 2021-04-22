@@ -2,6 +2,7 @@ package orders
 
 import (
 	"elevatorproject/driver-go/elevio"
+	"elevatorproject/config"
 	"fmt"
 	"time"
 )
@@ -62,6 +63,7 @@ type Order struct {
 	Destination        Floor
 	Timestamp          time.Time	
 	OriginElevator     string
+	AssignedElevator   string
 }
 
 func NewOrder(be elevio.ButtonEvent, elevID string) Order {
@@ -83,7 +85,7 @@ func (o Order) OrderCanBeDeleted() bool {
 }
 
 func (o Order) CheckForOrderTimeout() bool {
-	return time.Since(o.Timestamp).Milliseconds() > ORDER_MAX_AGE && !o.OrderCanBeDeleted()
+	return time.Now().After(o.Timestamp.Add(config.ORDER_MAX_EXECUTION_TIME)) && !o.OrderCanBeDeleted()
 }
 
 func (o Order) Equal(o2 Order) bool {

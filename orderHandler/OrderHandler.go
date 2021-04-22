@@ -52,8 +52,7 @@ func Distributer(	ID 					string,
 
 	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
-	for {
-		fmt.Println(handler.Mode)
+	for {		
 		switch handler.Mode {
 		case SLAVE:
 			select {
@@ -69,6 +68,7 @@ func Distributer(	ID 					string,
 				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
 				enableIpBroadcast <- true
+				fmt.Println(handler.Mode)
 			
 			case cp := <-checkpoint:
 				if cp.Timestamp.After(handler.Timestamp) {
@@ -82,7 +82,8 @@ func Distributer(	ID 					string,
 				fmt.Println("Error with connection to Master")
 				handler.Mode = MASTER
 				masterTimeoutTimer.Stop()
-				enableIpBroadcast <- true				
+				enableIpBroadcast <- true
+				fmt.Println(handler.Mode)				
 		
 			case <-orderUpdate: //Do nothing, master responsibility
 			case <-elevatorStateUpdate:
@@ -118,6 +119,7 @@ func Distributer(	ID 					string,
 				default:						
 				}									
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
+				fmt.Println(handler.Mode)
 			
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
@@ -127,7 +129,14 @@ func Distributer(	ID 					string,
 				continue //do nothing, slave responsibility
 			}
 
-			delegatedOrders, err := redistributeOrders(handler.AllOrders, handler.ElevatorStates)
+			ordersToAssign, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
+
+			for _, elevID := range elevsWithProbs {
+				delete(handler.ElevatorStates, elevID)
+				fmt.Println("Elevator has problems, removed from elevs: " + elevID)
+			}
+
+			delegatedOrders, err := redistributeOrders(ordersToAssign, handler.ElevatorStates)
 			if err != nil {
 				continue
 			} 
@@ -141,10 +150,12 @@ func Distributer(	ID 					string,
 }
 
 func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
+
 	input := toHRAInput(orders, elevatorStates)
 	sharedLights := input.HallOrder
 
 	hallOrders, err := Assigner(input)
+	orders.MarkAssignedElev(hallOrders)
 
 	if err != nil {		
 		return nil, err

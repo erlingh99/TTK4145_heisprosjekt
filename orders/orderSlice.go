@@ -1,5 +1,7 @@
 package orders
 
+import "elevatorproject/config"
+
 type OrderList []*Order
 
 func (ol *OrderList) ClearFinishedOrders() {
@@ -44,4 +46,48 @@ func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
 			//ol.OrderUpdate(o)		
 		}		
 	}
+}
+
+func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, []string) {
+	ol2 := make(OrderList, 0)
+
+	timedOutElevs := make([]string,0)
+
+	for _, o := range ol {
+		b := o.CheckForOrderTimeout()
+		if o.Orderstate == UNASSIGNED || b {
+			ol2 = append(ol2, o)		
+		}
+
+		if b {
+			timedOutElevs = append(timedOutElevs, o.AssignedElevator)
+			o.Orderstate = UNASSIGNED
+		}
+	}
+	return ol2, timedOutElevs
+}
+
+func (ol OrderList) MarkAssignedElev(assignedOrders map[string][config.N_FLOORS][2]bool) {
+	for elevID, orders := range assignedOrders {
+		for f, _ := range orders {
+			for dir, b := range orders[f] {
+				if b {
+					o := ol.findHallOrder(f, dir)
+					if o != nil {					
+						o.Orderstate = ASSIGNED
+						o.AssignedElevator = elevID
+					}
+				}
+			}
+		}
+	}
+}
+
+func (ol OrderList) findHallOrder(floor int, dir int) *Order{
+	for _, o := range ol {
+		if o.Ordertype == OrderType(dir) && o.Destination == Floor(floor) {
+			return o
+		}
+	}
+	return nil
 }
