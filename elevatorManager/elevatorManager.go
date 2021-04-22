@@ -89,7 +89,14 @@ func ElevatorManager(ID 		string,
 				
 				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
 					fsm_openDoor()
-					continue
+					o := orders.Order{
+						Orderstate:  	orders.COMPLETED,
+						Ordertype:   	orders.CAB,
+						Destination: 	orders.Floor(f),
+						Timestamp:   	time.Now(),
+						OriginElevator:	elevator.ID}
+					orderOut <- o
+					fmt.Printf("order complete %v\n", o.Destination)
 				}
 				
 				//set lights
