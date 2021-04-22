@@ -146,7 +146,9 @@ func Distributer(	ID 					string,
 				fmt.Println("Elevator has problems, removed from elevs: " + elevID)
 				for _, order := range handler.AllOrders {
 					if order.AssignedElevator == elevID {
-						order.Orderstate = orders.UNASSIGNED
+						if order.Ordertype != orders.CAB {
+							order.Orderstate = orders.UNASSIGNED
+						}
 						order.AssignedElevator = ""
 						order.Timestamp = time.Now()
 					}
