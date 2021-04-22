@@ -31,6 +31,7 @@ const TCP_RX_PORT_MASTER = 20007
 
 const IDLE_CONN_TIMEOUT = 2 * time.Second
 
+const MASTER_BCAST_PORT = 20008
 const MASTER_BROADCAST_INTERVAL = 1 * time.Second
 const MASTER_BROADCAST_LISTEN_TIMEOUT = 5 * time.Second
 

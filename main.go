@@ -5,6 +5,7 @@ import (
 	"elevatorproject/driver-go/elevio"
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/network/localip"
+	"elevatorproject/network/bcast"
 	"elevatorproject/utils"
 	"time"
 
@@ -64,6 +65,9 @@ func main() {
 
 	// Start elevatorManager
 	go em.ElevatorManager(elevatorID, ordersToElevatorsIn, ordersFromElevatorOut, elevStateChangeOut)
+
+	go Broadcaster(config.MASTER_BCAST_PORT, enableIpBroadcast, elevatorID)
+	go bcast.Receiver(config.MASTER_BCAST_PORT, broadcastReciever)
 
 
 
@@ -147,6 +151,23 @@ func main() {
 			}
 		}
 	}	
+}
+
+func Broadcaster(port int, enableBcast <-chan bool, id string) {
+	enabled := true
+	bcastCh := make(chan string)
+	go bcast.Transmitter(port, bcastCh)
+	for {
+		select {
+		case b := <-enableBcast:
+			enabled = b
+		default:
+			time.Sleep(config.MASTER_BROADCAST_INTERVAL)
+			if enabled {
+				bcastCh<- id
+			}
+		}
+	}
 }
 
 //TODO

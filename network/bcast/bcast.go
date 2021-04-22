@@ -1,80 +1,19 @@
-package bcast_with_ackCtrl
+package bcast
 
 import (
-	"elevatorproject/config"
 	"elevatorproject/network/conn"
-	"elevatorproject/utils"
 	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 	"strings"
-	"time"
+
 )
 
-type AcknowledgeCtrl struct { 
-	Msg			interface{}
-	ID 			string
-	AcksNeeded	[]string
-	AcksRecvd	[]string
-	SendTime	time.Time
-	SendNum		int
-}
-
-type AcknowledgeMsg struct {
-	ID			string
-	ElevID		string
-}
-
-type AckList []*AcknowledgeCtrl
-
-func (al *AckList) AddAck(a *AcknowledgeCtrl) {
-	for _, ack := range *al {
-		if ack.ID == a.ID {
-			ack.SendNum++
-		}
-	}
-	*al = append(*al, a)
-}
-
-func (al *AckList) AckRecieved(a *AcknowledgeMsg) {
-	for _, ack := range *al {
-		if ack.ID == a.ID {
-			if !utils.Contains(ack.AcksRecvd, a.ElevID) {
-				ack.AcksRecvd = append(ack.AcksRecvd, a.ElevID) //only add if it is not already there
-			}
-		}
-	}
-}
-
-func (al *AckList) RemoveCompletedAcks() {
-	al2 := make(AckList, 0)
-	for _, ack := range *al {
-		if !utils.StringArrEqual(ack.AcksNeeded, ack.AcksRecvd) {
-			al2 = append(al2, ack)
-		} else {
-			//fmt.Printf("Msg succesfully sent %v\n", ack.Msg)
-		}
-	}	
-	*al = al2
-}
-
-func (al *AckList) CheckForTimedoutSends() []string {
-	for i , acks := range *al {
-		if acks.SendNum > config.MAX_RESENDS {
-			fmt.Printf("Couldn't send %+v\n", acks.Msg)
-			fmt.Println(acks.AcksRecvd)
-			(*al)[i] = (*al)[len(*al)-1]
-			*al = (*al)[:len(*al)-1]
-			return acks.AcksRecvd
-		}
-	}
-	return nil
-}
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
 // it on `port`
-func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ...interface{}) {
+func Transmitter(port int, chans ...interface{}) {
 	checkArgs(chans...)
 
 	n := 0
@@ -98,34 +37,12 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 		chosen, value, _ := reflect.Select(selectCases)
 		buf, _ := json.Marshal(value.Interface())
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
-
-		if typeNames[chosen] != "bcast_with_ackCtrl.AcknowledgeMsg" {
-			
-			AckNeeded <- AcknowledgeCtrl{	Msg: 		value,
-											ID:			string(buf), 
-											SendTime: 	time.Now(),
-											SendNum: 	1,
-											AcksRecvd:	[]string{id}}
-		}
-	}
-}
-
-func ResendMsg(msg interface{}, sendChans ...interface{}){
-	for _, ch := range sendChans {
-		if reflect.TypeOf(ch).Elem() == reflect.TypeOf(msg) {
-			sendCase := reflect.SelectCase{	Dir:  reflect.SelectSend,
-											Send: reflect.ValueOf(msg),
-											Chan:  reflect.ValueOf(ch)}
-			reflect.Select([]reflect.SelectCase{sendCase})
-			//can this block??
-			return
-		}
 	}
 }
 
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
-func Receiver(id string, port int, ackSend chan<- AcknowledgeMsg, chans ...interface{}) {
+func Receiver(port int, chans ...interface{}) {
 	checkArgs(chans...)
 
 	var buf [1024]byte
@@ -150,13 +67,6 @@ func Receiver(id string, port int, ackSend chan<- AcknowledgeMsg, chans ...inter
 					Chan: reflect.ValueOf(ch),
 					Send: reflect.Indirect(v),
 				}})
-
-				if  reflect.TypeOf(ch).Elem().String() != "bcast_with_ackCtrl.AcknowledgeMsg" {
-					//er v sendt når man kommer hit???
-					ackSend <- AcknowledgeMsg{	ID:			string(buf[0:n]), 											
-												ElevID: 	id}
-
-				}
 			}
 		}
 	}
