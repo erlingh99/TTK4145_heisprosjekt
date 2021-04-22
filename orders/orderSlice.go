@@ -48,15 +48,18 @@ func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
 	}
 }
 
-func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, []string) {
-	ol2 := make(OrderList, 0)
+func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, OrderList, []string) {
+	olUnassigned := make(OrderList, 0)
+	olAsssigned := make(OrderList, 0)
 
 	timedOutElevs := make([]string,0)
 
 	for _, o := range ol {
 		b := o.CheckForOrderTimeout()
 		if o.Orderstate == UNASSIGNED || b {
-			ol2 = append(ol2, o)		
+			olUnassigned = append(olUnassigned, o)		
+		} else if o.Orderstate == ASSIGNED {
+			olAsssigned = append(olAsssigned, o)
 		}
 
 		if b {
@@ -64,12 +67,12 @@ func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, []string) {
 			o.Orderstate = UNASSIGNED
 		}
 	}
-	return ol2, timedOutElevs
+	return olUnassigned, olAsssigned, timedOutElevs
 }
 
 func (ol OrderList) MarkAssignedElev(assignedOrders map[string][config.N_FLOORS][2]bool) {
 	for elevID, orders := range assignedOrders {
-		for f, _ := range orders {
+		for f := range orders {
 			for dir, b := range orders[f] {
 				if b {
 					o := ol.findHallOrder(f, dir)

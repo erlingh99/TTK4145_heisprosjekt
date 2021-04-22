@@ -135,14 +135,14 @@ func Distributer(	ID 					string,
 				continue //do nothing, slave responsibility
 			}
 
-			ordersToAssign, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
+			ordersToAssign, assignedorders, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
 
 			for _, elevID := range elevsWithProbs {
 				delete(handler.ElevatorStates, elevID)
 				fmt.Println("Elevator has problems, removed from elevs: " + elevID)
 			}
 
-			delegatedOrders, err := redistributeOrders(ordersToAssign, handler.ElevatorStates)
+			delegatedOrders, err := redistributeOrders(ordersToAssign, assignedorders, handler.ElevatorStates)
 			if err != nil {
 				continue
 			} 
@@ -155,13 +155,24 @@ func Distributer(	ID 					string,
 	}
 }
 
-func redistributeOrders(orders orders.OrderList, elevatorStates map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
+func redistributeOrders(Unassigned 		orders.OrderList, 
+						assigned 		orders.OrderList,
+						elevatorStates 	map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
 
-	input := toHRAInput(orders, elevatorStates)
+	input := toHRAInput(Unassigned, elevatorStates)
 	sharedLights := input.HallOrder
 
 	hallOrders, err := Assigner(input)
-	orders.MarkAssignedElev(hallOrders)
+	Unassigned.MarkAssignedElev(hallOrders)
+
+	
+	for _, order := range assigned {
+		if _, exist := hallOrders[order.AssignedElevator]; exist {
+			temp := hallOrders[order.AssignedElevator]
+			temp[int(order.Destination)][int(order.Ordertype)] = true
+			hallOrders[order.AssignedElevator] = temp
+		}
+	}
 
 	if err != nil {		
 		return nil, err
