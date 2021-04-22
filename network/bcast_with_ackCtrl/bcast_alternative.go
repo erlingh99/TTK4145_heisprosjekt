@@ -15,7 +15,8 @@ import (
 type AcknowledgeCtrl struct { 
 	Msg			interface{}
 	ID 			string
-	ElevIDs		[]string
+	AcksNeeded	[]string
+	AcksRecvd	[]string
 	SendTime	time.Time
 	SendNum		int
 }
@@ -39,18 +40,20 @@ func (al *AckList) AddAck(a *AcknowledgeCtrl) {
 func (al *AckList) AckRecieved(a *AcknowledgeMsg) {
 	for _, ack := range *al {
 		if ack.ID == a.ID {
-			if !utils.Contains(ack.ElevIDs, a.ElevID) {
-				ack.ElevIDs = append(ack.ElevIDs, a.ElevID) //only add if it is not already there
+			if !utils.Contains(ack.AcksRecvd, a.ElevID) {
+				ack.AcksRecvd = append(ack.AcksRecvd, a.ElevID) //only add if it is not already there
 			}
 		}
 	}
 }
 
-func (al *AckList) RemoveCompletedAcks(peers []string) {
+func (al *AckList) RemoveCompletedAcks() {
 	al2 := make(AckList, 0)
 	for _, ack := range *al {
-		if !utils.StringArrEqual(ack.ElevIDs, peers) {
+		if !utils.StringArrEqual(ack.AcksNeeded, ack.AcksRecvd) {
 			al2 = append(al2, ack)
+		} else {
+			fmt.Printf("Msg succesfully sent %v\n", ack.Msg)
 		}
 	}	
 	*al = al2
@@ -60,10 +63,10 @@ func (al *AckList) CheckForTimedoutSends() []string {
 	for i , acks := range *al {
 		if acks.SendNum > config.MAX_RESENDS {
 			fmt.Printf("Couldn't send %+v\n", acks.Msg)
-			fmt.Println(acks.ElevIDs)
+			fmt.Println(acks.AcksRecvd)
 			(*al)[i] = (*al)[len(*al)-1]
 			*al = (*al)[:len(*al)-1]
-			return acks.ElevIDs
+			return acks.AcksRecvd
 		}
 	}
 	return nil
@@ -102,7 +105,7 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 											ID:			string(buf), 
 											SendTime: 	time.Now(),
 											SendNum: 	1,
-											ElevIDs:	[]string{id}}
+											AcksRecvd:	[]string{id}}
 		}
 	}
 }

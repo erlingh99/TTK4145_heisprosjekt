@@ -120,16 +120,17 @@ func main() {
 			if ack.ElevID == elevatorID {
 				continue
 			}
-			waitingForAcks.AckRecieved(&ack)
-			fmt.Println("ack recv")
+			waitingForAcks.AckRecieved(&ack)			
+			fmt.Println("ack recv " + ack.ID)
 
 		case ack := <-AckNeeded:
 			// fmt.Println("ack needed")
-			// fmt.Println(ack.Msg)		
+			// fmt.Println(ack.Msg)
+			ack.AcksNeeded = peerIDs		
 			waitingForAcks.AddAck(&ack)
 		}
 
-		waitingForAcks.RemoveCompletedAcks(peerIDs)
+		waitingForAcks.RemoveCompletedAcks()
 		regElev := waitingForAcks.CheckForTimedoutSends()
 		if len(regElev) == 0 {continue}
 		//find what elevators are not responding
