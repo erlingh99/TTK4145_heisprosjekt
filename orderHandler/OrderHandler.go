@@ -136,10 +136,10 @@ func Distributer(	ID 					string,
 			}
 
 
-			fmt.Println(handler.AllOrders)
+			fmt.Println("all orders:", handler.AllOrders)
 			ordersToAssign, assignedorders, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
-			fmt.Println(ordersToAssign)
-			fmt.Println(assignedorders)
+			fmt.Println("toAssign orders:", ordersToAssign)
+			fmt.Println("assigned orders:", assignedorders)
 
 			for _, elevID := range elevsWithProbs {
 				delete(handler.ElevatorStates, elevID)
