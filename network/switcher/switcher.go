@@ -2,11 +2,13 @@ package switcher
 
 
 import (	
+	"fmt"
 	"elevatorproject/network/localip"
 	oh "elevatorproject/orderHandler"
 	em "elevatorproject/elevatorManager"
 	"elevatorproject/orders"
 	"elevatorproject/config"
+	"time"
 )
 
 
@@ -28,16 +30,26 @@ func Switcher(	//inputs
 
 	hasInternet := false
 
-	for {
-		_, err := localip.LocalIP()
-		if err != nil {
-			hasInternet = false
-		} else {
-			hasInternet = true
+	go func() {
+		for {
+			ip, err := localip.LocalIP()
+			fmt.Println("localip:", ip, err)
+			if err != nil {
+				hasInternet = false
+			} else {
+				hasInternet = true
+			}
+			time.Sleep(config.NET_TIMEOUT)
 		}
+	}()
+
+	for {
+
 
 		select {
 		case msg := <- ordersFromElevatorOut:
+			fmt.Println("hasInternet 1:", hasInternet)
+
 			if hasInternet {
 				ordersFromElevatorOut2<-msg
 			} else {
@@ -56,9 +68,11 @@ func Switcher(	//inputs
 				backupIn<-msg
 			}
 		case msg := <- ordersToElevatorsOut:
+			fmt.Println("hasInternet 2:", hasInternet)
 			if hasInternet {
 				ordersToElevatorsOut2 <- msg
 			} else {
+				fmt.Println("ordToElev:", msg)
 				ordersToElevatorsIn <- msg
 			}
 		}

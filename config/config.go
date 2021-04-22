@@ -32,6 +32,7 @@ const TCP_TX_PORT_MASTER = 20006
 const TCP_RX_PORT_MASTER = 20007
 
 const IDLE_CONN_TIMEOUT = 2 * time.Second
+const NET_TIMEOUT = 2 * time.Second
 
 const MASTER_BCAST_PORT = 20008
 const MASTER_BROADCAST_INTERVAL = 200 * time.Millisecond

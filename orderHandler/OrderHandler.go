@@ -53,6 +53,7 @@ func Distributer(	ID 					string,
 	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
+		fmt.Println("I am ", handler.Mode)
 		switch handler.Mode {
 		case SLAVE:
 			select {
