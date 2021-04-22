@@ -17,7 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"rand"
+	"math/rand"
 )
 
 
@@ -167,7 +167,7 @@ func Broadcaster(port int, enableBcast <-chan bool, id string) {
 				bcastCh<- id
 			}
 			// time.Sleep(config.MASTER_BROADCAST_INTERVAL)
-			time.Sleep((MASTER_BROADCAST_INTERVAL_MIN + rand.Intn(config.MASTER_BROADCAST_INTERVAL_MAX - MASTER_BROADCAST_INTERVAL_MIN)) * time.Millisecond)
+			time.Sleep(time.Duration(config.MASTER_BROADCAST_INTERVAL_MIN + rand.Intn(config.MASTER_BROADCAST_INTERVAL_MAX - config.MASTER_BROADCAST_INTERVAL_MIN)) * time.Millisecond)
 		}
 	}
 }
