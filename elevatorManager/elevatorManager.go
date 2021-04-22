@@ -92,7 +92,7 @@ func ElevatorManager(ID 		string,
 					o := orders.Order{
 						Orderstate:  	orders.COMPLETED,
 						Ordertype:   	orders.CAB,
-						Destination: 	orders.Floor(f),
+						Destination: 	orders.Floor(elevator.Floor),
 						Timestamp:   	time.Now(),
 						OriginElevator:	elevator.ID}
 					orderOut <- o
