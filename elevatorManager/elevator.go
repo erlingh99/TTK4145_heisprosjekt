@@ -33,6 +33,7 @@ type Elevator struct {
 	LastChange		time.Time //useful for ordering messages arriving in disorder
 }
 
+// Changing from the Requests type to a list with Orders type
 func (e Elevator) OrdersFromElevRequests() orders.OrderList{
 	subList := make(orders.OrderList, 0)
 	for i := 0; i<config.N_FLOORS; i++ {

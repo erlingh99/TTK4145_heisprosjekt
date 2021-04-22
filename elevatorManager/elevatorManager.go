@@ -79,7 +79,6 @@ func ElevatorManager(ID 		string,
 			//when there comes a new orders from the master elevator
 			case newOrders := <-ordersIn:				
 				if newOrders[elevator.ID] != elevator.Requests {
-					//fmt.Println(newOrders)
 					fmt.Println("new orders recieved")
 				}
 				elevator.Requests = newOrders[elevator.ID]
@@ -89,6 +88,7 @@ func ElevatorManager(ID 		string,
 				
 
 				//check for recieved order on the floor we are at
+				// If there is an order the door is opened and the orders is marked as colmpleted
 				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
 					fsm_openDoor()
 					o := orders.Order{
@@ -118,6 +118,7 @@ func ElevatorManager(ID 		string,
 				fmt.Println("Doortimeout")
 				fsm_onDoorTimeout()	
 			
+			// Sharing the elevator state with the master every 2 sec
 			case <- shareStateTicker.C:
 				shareState <- elevator				
         }

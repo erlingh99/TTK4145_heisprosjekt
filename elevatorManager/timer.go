@@ -7,8 +7,10 @@ import (
 )
 
 
+// Timer logic for the doortimer
+
 var doorTimer *time.Timer
-//var timerStarted = false
+
 
 
 func timer_init() {
@@ -19,8 +21,6 @@ func timer_init() {
 }
 
 func timer_start() {
-
-	//timerStarted = true
 	doorTimer.Stop()
 	select {
 	case <-doorTimer.C:
@@ -30,17 +30,3 @@ func timer_start() {
 	doorTimer.Reset(config.DOOR_TIMEOUT)
 }
  
-/*
-func timer_timedOut() bool {
-	if timerStarted {
-		select {
-		case <-doorTimer.C:
-			timerStarted = false
-			return true
-		default:
-			return false
-		}
-	}
-	return false
-}
-*/

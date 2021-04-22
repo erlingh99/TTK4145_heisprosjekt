@@ -54,6 +54,7 @@ func request_chooseDirection() elevio.MotorDirection{
 }
 
 
+//Check to see if the elevator should stop at the current floor
 func request_shouldStop() bool {
 	switch (elevator.Dirn) {
 	case elevio.MD_Down:
