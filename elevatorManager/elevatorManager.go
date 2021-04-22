@@ -87,7 +87,7 @@ func ElevatorManager(ID 		string,
 				_, cabLights := utils.Demux(newOrders[elevator.ID])				
 				hallLights, _ := utils.Demux(newOrders["HallLights"])
 				
-				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][0]) && elevator.Behaviour != EB_Moving {
+				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
 					fsm_openDoor()
 					continue
 				}
