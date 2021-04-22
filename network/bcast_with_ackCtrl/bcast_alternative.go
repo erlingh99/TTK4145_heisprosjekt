@@ -53,7 +53,7 @@ func (al *AckList) RemoveCompletedAcks() {
 		if !utils.StringArrEqual(ack.AcksNeeded, ack.AcksRecvd) {
 			al2 = append(al2, ack)
 		} else {
-			fmt.Printf("Msg succesfully sent %v\n", ack.Msg)
+			//fmt.Printf("Msg succesfully sent %v\n", ack.Msg)
 		}
 	}	
 	*al = al2

@@ -121,7 +121,7 @@ func main() {
 				continue
 			}
 			waitingForAcks.AckRecieved(&ack)			
-			fmt.Println("ack recv " + ack.ID)
+			//fmt.Println("ack recv " + ack.ID)
 
 		case ack := <-AckNeeded:
 			// fmt.Println("ack needed")
@@ -146,3 +146,16 @@ func main() {
 		}
 	}	
 }
+
+//TODO
+//do they detect eachother?
+
+
+//when is orderhandler master, when slave?
+
+//how to check for bad elevator?
+
+//using peers to remove missing acks, wab reconnects etcc
+
+//acks needed. Everyone active, or just the ones active when msg was created?
+//wab new and lost peers`?
