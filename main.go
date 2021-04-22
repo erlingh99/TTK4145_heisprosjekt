@@ -17,7 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"rand"
+	"math/rand"
 )
 
 
