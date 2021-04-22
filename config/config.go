@@ -7,39 +7,29 @@ import (
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
-const DOOR_TIMEOUT = 3 * time.Second
-const POLLRATE = 25 * time.Millisecond
 
+//ack consts
 const MAX_RESENDS = 3
 const RESEND_RATE = 300 * time.Millisecond
 
+//order consts
 const ORDER_MAX_EXECUTION_TIME = 15 * time.Second
 
+//elev consts
+const DOOR_TIMEOUT = 3 * time.Second
+const POLLRATE = 25 * time.Millisecond
+const ELEV_SHARE_STATE_INTERVAL = 2 * time.Second
 
-const CONNECT_ADDR = "192.168.1.176"
-const CONNECT_PORT = 20002
-
+//bcast ports
 const PEER_PORT =  20005
 const BCAST_PORT = 20010
 
-const LISTEN_PORT = 20002
-
-const BROADCAST_PORT = 20001
-
-const REQUEST_CONNECTION_PORT = 20003
-
-const TCP_TX_PORT_MASTER = 20006
-const TCP_RX_PORT_MASTER = 20007
-
+//Conn timeout consts
 const IDLE_CONN_TIMEOUT = 2 * time.Second
 const NET_TIMEOUT = 2 * time.Second
 
+
+//alive msg
 const MASTER_BCAST_PORT = 20008
-const MASTER_BROADCAST_INTERVAL = 200 * time.Millisecond
 const MASTER_BROADCAST_INTERVAL_MIN = 100  // ms
 const MASTER_BROADCAST_INTERVAL_MAX = 1500 // ms
-
-const MASTER_BROADCAST_LISTEN_TIMEOUT = 5 * time.Second
-
-const SLAVE_ALIVE_MSG_INTERVAL = 1 * time.Second
-const SLAVE_ALIVE_MSG_LISTEN_TIMEOUT = 5 * time.Second

@@ -15,19 +15,20 @@ func (ol *OrderList) ClearFinishedOrders() {
 }
 
 func (ol *OrderList) OrderUpdate(o *Order) {	
-	if o.Orderstate == COMPLETED {
+
+	if o.Orderstate == COMPLETED { //some order has been completed
 		ol.clearOrdersAtFloor(o.Destination, o.OriginElevator)
 		return
 	}
 
 	for i, order := range *ol {		
-		if order.Equal(*o) { //orderUpdate not new
+		if order.Equal(*o) { //orderUpdate, not new
 			(*ol)[i] = o
 			return
 		}
 	}
 
-	*ol = append(*ol, o)
+	*ol = append(*ol, o) //new order
 }
 
 func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
@@ -39,11 +40,9 @@ func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
 func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
 	for _, o := range ol {
 		if o.Destination == f && o.Ordertype == CAB && o.OriginElevator == elevID {
-			o.Orderstate = COMPLETED
-			//ol.OrderUpdate(o)				
+			o.Orderstate = COMPLETED		
 		} else if o.Destination == f && o.Ordertype != CAB {
-			o.Orderstate = COMPLETED	
-			//ol.OrderUpdate(o)		
+			o.Orderstate = COMPLETED						
 		}		
 	}
 }

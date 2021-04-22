@@ -30,8 +30,8 @@ func ElevatorManager(ID 		string,
 
 	timer_init()
 	fsm_onInit(ID)
-	//shareState <- elevator
-	ticker := time.NewTicker(2*time.Second)
+	
+	shareStateTicker := time.NewTicker(config.ELEV_SHARE_STATE_INTERVAL)
 
     for {
 		//Main loop checking for inputs on any of the channels
@@ -80,13 +80,15 @@ func ElevatorManager(ID 		string,
 			case newOrders := <-ordersIn:				
 				if newOrders[elevator.ID] != elevator.Requests {
 					//fmt.Println(newOrders)
-					fmt.Println("new orders in")
+					fmt.Println("new orders recieved")
 				}
-				elevator.Requests = newOrders[elevator.ID]//maybe not overwrite?
+				elevator.Requests = newOrders[elevator.ID]
 
 				_, cabLights := utils.Demux(newOrders[elevator.ID])				
 				hallLights, _ := utils.Demux(newOrders["HallLights"])
 				
+
+				//check for recieved order on the floor we are at
 				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
 					fsm_openDoor()
 					o := orders.Order{
@@ -116,7 +118,7 @@ func ElevatorManager(ID 		string,
 				fmt.Println("Doortimeout")
 				fsm_onDoorTimeout()	
 			
-			case <- ticker.C:
+			case <- shareStateTicker.C:
 				shareState <- elevator				
         }
 		elevator.LastChange = time.Now()				

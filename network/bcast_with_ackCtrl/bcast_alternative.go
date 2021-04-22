@@ -52,24 +52,26 @@ func (al *AckList) RemoveCompletedAcks() {
 	for _, ack := range *al {
 		if !utils.StringArrEqual(ack.AcksNeeded, ack.AcksRecvd) {
 			al2 = append(al2, ack)
-		} else {
-			//fmt.Printf("Msg succesfully sent %v\n", ack.Msg)
 		}
 	}	
 	*al = al2
 }
 
 func (al *AckList) CheckForTimedoutSends() []string {
-	for i , acks := range *al {
+	missingAcks := make([]string, 0)
+
+	for _, acks := range *al {
 		if acks.SendNum > config.MAX_RESENDS {
 			fmt.Printf("Couldn't send %+v\n", acks.Msg)
-			fmt.Println(acks.AcksRecvd)
-			(*al)[i] = (*al)[len(*al)-1]
-			*al = (*al)[:len(*al)-1]
-			return acks.AcksRecvd
+			missing := utils.StringArrDiff(acks.AcksNeeded, acks.AcksRecvd)
+			//fmt.Println("Acks missing: ", missingAcks)			
+			missingAcks = append(missingAcks, missing...)			
+
+			//mark element as completed, so it is removed			
+			acks.AcksRecvd = acks.AcksNeeded
 		}
 	}
-	return nil
+	return missingAcks
 }
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
@@ -100,7 +102,7 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 
 		if typeNames[chosen] != "bcast_with_ackCtrl.AcknowledgeMsg" {
-			
+			//Make ackCtrl for the message
 			AckNeeded <- AcknowledgeCtrl{	Msg: 		value,
 											ID:			string(buf), 
 											SendTime: 	time.Now(),
@@ -116,8 +118,7 @@ func ResendMsg(msg interface{}, sendChans ...interface{}){
 			sendCase := reflect.SelectCase{	Dir:  reflect.SelectSend,
 											Send: reflect.ValueOf(msg),
 											Chan:  reflect.ValueOf(ch)}
-			reflect.Select([]reflect.SelectCase{sendCase})
-			//can this block??
+			reflect.Select([]reflect.SelectCase{sendCase})			
 			return
 		}
 	}
@@ -152,7 +153,7 @@ func Receiver(id string, port int, ackSend chan<- AcknowledgeMsg, chans ...inter
 				}})
 
 				if  reflect.TypeOf(ch).Elem().String() != "bcast_with_ackCtrl.AcknowledgeMsg" {
-					//er v sendt når man kommer hit???
+					//send ackMessage
 					ackSend <- AcknowledgeMsg{	ID:			string(buf[0:n]), 											
 												ElevID: 	id}
 

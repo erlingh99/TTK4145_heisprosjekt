@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const ORDER_MAX_AGE = 20000 //ms, time before an uncompleted order is reassigned
-
 type OrderState int
 const (
 	UNASSIGNED OrderState = iota

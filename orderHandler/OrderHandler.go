@@ -52,13 +52,12 @@ func Distributer(	ID 					string,
 
 	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
-	for {
-		fmt.Println("I am ", handler.Mode)
+	for {		
 		switch handler.Mode {
 		case SLAVE:
 			select {
 			
-			case <-broadcastRx:
+			case <-broadcastRx: //alive message from master
 				// fmt.Println("alive message")
 				if !masterTimeoutTimer.Stop() {
 					select{
@@ -73,9 +72,9 @@ func Distributer(	ID 					string,
 				handler.Mode = MASTER
 				fmt.Println(handler.Mode)
 				enableIpBroadcast <- true
-				fmt.Println(handler.Mode)
+				fmt.Println("I'm now: ", handler.Mode)
 			
-			case cp := <-checkpoint:
+			case cp := <-checkpoint: //backup master state
 				if cp.Timestamp.After(handler.Timestamp) {
 					// fmt.Println("checkpoint recieved")
 					handler.AllOrders = cp.AllOrders
@@ -89,7 +88,7 @@ func Distributer(	ID 					string,
 				fmt.Println(handler.Mode)
 				masterTimeoutTimer.Stop()
 				enableIpBroadcast <- true
-				fmt.Println(handler.Mode)				
+				fmt.Println("I'm now: ", handler.Mode)				
 		
 			case <-orderUpdate: //Do nothing, master responsibility
 			case <-elevatorStateUpdate:
@@ -126,7 +125,7 @@ func Distributer(	ID 					string,
 				default:						
 				}									
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
-				fmt.Println(handler.Mode)
+				fmt.Println("I'm now: ", handler.Mode)
 			
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
@@ -163,8 +162,7 @@ func Distributer(	ID 					string,
 			handler.Timestamp = time.Now()
 			handler.AllOrders.ClearFinishedOrders()		
 			delegateOrders <- delegatedOrders
-			backupChan <- handler
-			//fmt.Println("Orders delegated, backup sent")			
+			backupChan <- handler		
 		}
 	}
 }
@@ -175,12 +173,17 @@ func redistributeOrders(Unassigned 		orders.OrderList,
 
 	input := toHRAInput(Unassigned, assigned, elevatorStates)
 
-	fmt.Println(input.States)
+	//fmt.Println(input.States)
 
 	hallOrders, err := Assigner(input)
+	if err != nil {		
+		return nil, err
+	}
+
+	//mark the orders that were previously unassigned, with assigned elevator ID
 	Unassigned.MarkAssignedElev(hallOrders)
 
-	
+	//add the previously assigned orders to hallorders
 	for _, order := range assigned {
 		if order.Ordertype == orders.CAB {
 			continue
@@ -191,6 +194,7 @@ func redistributeOrders(Unassigned 		orders.OrderList,
 		}
 	}
 
+	//make array for describing shared lights status
 	sharedLights := [config.N_FLOORS][config.N_BUTTONS]bool {}
 	for _, orders := range hallOrders {
 		for f := range orders {
@@ -202,12 +206,8 @@ func redistributeOrders(Unassigned 		orders.OrderList,
 		}
 	}
 
-	if err != nil {		
-		return nil, err
-	}
-
+	//create and fill order map
 	delegatedOrders := make(map[string][config.N_FLOORS][config.N_BUTTONS]bool)
-
 	for k, elev := range elevatorStates {
 		elevOrders := utils.Mux(hallOrders[k], input.States[k].CabRequests)		
 		delegatedOrders[elev.ID] = elevOrders		

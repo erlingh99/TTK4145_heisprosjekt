@@ -74,7 +74,7 @@ func main() {
 	// Start elevatorManager
 	go em.ElevatorManager(elevatorID, ordersToElevatorsIn, ordersFromElevatorOut, elevStateChangeOut)
 
-	go Broadcaster(config.MASTER_BCAST_PORT, enableIpBroadcast, elevatorID)
+	go imMasterAlertBcast(config.MASTER_BCAST_PORT, enableIpBroadcast, elevatorID)
 	go bcast.Receiver(config.MASTER_BCAST_PORT, broadcastReciever)
 
 
@@ -129,7 +129,7 @@ func main() {
 
 		case <-msgResendTicker.C:
 			//fmt.Println("ack ticker")
-			for _, ack := range waitingForAcks {
+			for _, ack := range waitingForAcks { //find messages to resend
 				if time.Now().After(ack.SendTime.Add(time.Duration(ack.SendNum) * config.RESEND_RATE)) {
 					// use reflect with ack.msg to resend on correct sendchan
 					bcast_ack.ResendMsg(ack.Msg, ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend)
@@ -138,7 +138,7 @@ func main() {
 		
 		case ack := <-AckRecieved:
 			if ack.ElevID == elevatorID {
-				continue
+				continue //recieved acks we sent ourselves
 			}
 			waitingForAcks.AckRecieved(&ack)			
 			//fmt.Println("ack recv " + ack.ID)
@@ -151,25 +151,18 @@ func main() {
 		}
 
 		waitingForAcks.RemoveCompletedAcks()
-		regElev := waitingForAcks.CheckForTimedoutSends()
-		if len(regElev) == 0 {continue}
+		missingAcks := waitingForAcks.CheckForTimedoutSends()
+		if len(missingAcks) == 0 {continue}
 		//find what elevators are not responding
-		for _, p := range peerIDs {
-			if !utils.Contains(regElev, p) {
-				if p != elevatorID {
-					//foreign p is not responding
-					peerIDs = utils.Remove(peerIDs, p)
-					elevDisconnect <- p
-					//might be a problem if good elevator is removed, because it will not reconnect with peers then
-
-					fmt.Println("peer timedout" + p)
-				}
-			}
+		for _, v := range missingAcks {
+			peerIDs = utils.Remove(peerIDs, v)
+			elevDisconnect <- v					
+			fmt.Println("peer timedout" + v)							
 		}
 	}	
 }
 
-func Broadcaster(port int, enableBcast <-chan bool, id string) {
+func imMasterAlertBcast(port int, enableBcast <-chan bool, id string) {
 	enabled := false
 	bcastCh := make(chan string)
 	go bcast.Transmitter(port, bcastCh)
@@ -186,16 +179,3 @@ func Broadcaster(port int, enableBcast <-chan bool, id string) {
 		}
 	}
 }
-
-//TODO
-//do they detect eachother?
-
-
-//when is orderhandler master, when slave?
-
-//how to check for bad elevator?
-
-//using peers to remove missing acks, wab reconnects etcc
-
-//acks needed. Everyone active, or just the ones active when msg was created?
-//wab new and lost peers`?

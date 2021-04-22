@@ -30,13 +30,17 @@ func Switcher(	//inputs
 
 	hasInternet := false
 
-	go func() {
+
+	//routinely check if internet works
+	go func() {		
 		for {
-			ip, err := localip.LocalIP()
-			fmt.Println("localip:", ip, err)
+			_, err := localip.LocalIP()
+			//fmt.Println("localip:", ip, err)
 			if err != nil {
+				if hasInternet {fmt.Println("internet is now down!")}
 				hasInternet = false
 			} else {
+				if !hasInternet {fmt.Println("internet is now up!")}
 				hasInternet = true
 			}
 			time.Sleep(config.NET_TIMEOUT)
@@ -44,12 +48,8 @@ func Switcher(	//inputs
 	}()
 
 	for {
-
-
 		select {
-		case msg := <- ordersFromElevatorOut:
-			fmt.Println("hasInternet 1:", hasInternet)
-
+		case msg := <- ordersFromElevatorOut:			
 			if hasInternet {
 				ordersFromElevatorOut2<-msg
 			} else {
@@ -67,12 +67,10 @@ func Switcher(	//inputs
 			} else {
 				backupIn<-msg
 			}
-		case msg := <- ordersToElevatorsOut:
-			fmt.Println("hasInternet 2:", hasInternet)
+		case msg := <- ordersToElevatorsOut:			
 			if hasInternet {
 				ordersToElevatorsOut2 <- msg
-			} else {
-				fmt.Println("ordToElev:", msg)
+			} else {				
 				ordersToElevatorsIn <- msg
 			}
 		}
