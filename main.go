@@ -41,6 +41,11 @@ func main() {
 	}
 	elevio.Init("localhost:15657", config.N_FLOORS)
 
+
+	//out = channel the msg is originally sent on
+	//out2 = channel the msg is passed into if internet connection exist, gos to network
+	//In = channel the msg is passed into if internet connection exist, gos to local module
+
 	ordersFromElevatorOut := make(chan orders.Order, 1)
 	ordersFromElevatorOut2 := make(chan orders.Order, 1)
 	ordersFromElevatorIn := make(chan orders.Order, 1)
@@ -59,14 +64,11 @@ func main() {
 	ordersToElevatorsOut2 := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 
-	broadcastReciever := make(chan string, 1) //obsolete
-	enableIpBroadcast := make(chan bool, 1)   //obsolete
+	broadcastReciever := make(chan string, 1)
+	enableIpBroadcast := make(chan bool, 1)
 
 
 	elevDisconnect := make(chan string, 1)
-
-	
-
 
 	// Start orderHandler
 	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, broadcastReciever, backupIn, elevDisconnect, ordersToElevatorsOut, enableIpBroadcast, backupOut)
@@ -76,9 +78,6 @@ func main() {
 
 	go imMasterAlertBcast(config.MASTER_BCAST_PORT, enableIpBroadcast, elevatorID)
 	go bcast.Receiver(config.MASTER_BCAST_PORT, broadcastReciever)
-
-
-
 
 	peerIDs := make([]string, 0)
 	waitingForAcks := make(bcast_ack.AckList, 0)
@@ -129,7 +128,8 @@ func main() {
 
 		case <-msgResendTicker.C:
 			//fmt.Println("ack ticker")
-			for _, ack := range waitingForAcks { //find messages to resend
+			for _, ack := range waitingForAcks {
+				//find messages to resend
 				if time.Now().After(ack.SendTime.Add(time.Duration(ack.SendNum) * config.RESEND_RATE)) {
 					// use reflect with ack.msg to resend on correct sendchan
 					bcast_ack.ResendMsg(ack.Msg, ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend)
@@ -141,11 +141,8 @@ func main() {
 				continue //recieved acks we sent ourselves
 			}
 			waitingForAcks.AckRecieved(&ack)			
-			//fmt.Println("ack recv " + ack.ID)
 
 		case ack := <-AckNeeded:
-			// fmt.Println("ack needed")
-			// fmt.Println(ack.Msg)
 			ack.AcksNeeded = peerIDs		
 			waitingForAcks.AddAck(&ack)
 		}
@@ -174,7 +171,7 @@ func imMasterAlertBcast(port int, enableBcast <-chan bool, id string) {
 			if enabled {
 				bcastCh<- id
 			}
-			// time.Sleep(config.MASTER_BROADCAST_INTERVAL)
+			// sleep some random time to avoid master -> slave -> master cycle when 2 elevators compete for master
 			time.Sleep(time.Duration(config.MASTER_BROADCAST_INTERVAL_MIN + rand.Intn(config.MASTER_BROADCAST_INTERVAL_MAX - config.MASTER_BROADCAST_INTERVAL_MIN)) * time.Millisecond)
 		}
 	}
