@@ -4,8 +4,9 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/driver-go/elevio"
 	em "elevatorproject/elevatorManager"
-	"elevatorproject/network/localip"
 	"elevatorproject/network/bcast"
+	"elevatorproject/network/localip"
+	"elevatorproject/network/switcher"
 	"elevatorproject/utils"
 	"time"
 
@@ -16,8 +17,8 @@ import (
 	"elevatorproject/orders"
 	"flag"
 	"fmt"
-	"os"
 	"math/rand"
+	"os"
 )
 
 
@@ -41,17 +42,21 @@ func main() {
 	elevio.Init("localhost:15657", config.N_FLOORS)
 
 	ordersFromElevatorOut := make(chan orders.Order, 1)
+	ordersFromElevatorOut2 := make(chan orders.Order, 1)
 	ordersFromElevatorIn := make(chan orders.Order, 1)
 
 
 	elevStateChangeOut := make(chan em.Elevator, 1)
+	elevStateChangeOut2 := make(chan em.Elevator, 1)
 	elevStateChangeIn := make(chan em.Elevator, 1)
 
 
 	backupOut := make(chan oh.DistributerState, 1)
+	backupOut2 := make(chan oh.DistributerState, 1)
 	backupIn := make(chan oh.DistributerState, 1)
 
 	ordersToElevatorsOut := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
+	ordersToElevatorsOut2 := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 
 	broadcastReciever := make(chan string, 1) //obsolete
@@ -59,6 +64,8 @@ func main() {
 
 
 	elevDisconnect := make(chan string, 1)
+
+	
 
 
 	// Start orderHandler
@@ -83,9 +90,13 @@ func main() {
 
 	//recvChans: ordersFromElevatorIn, elevStateChangeIn, backupIn, ordersToElevatorsIn, AckRecieved
 	//sendChans: ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend
+	
+	go switcher.Switcher(ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut,
+						ordersFromElevatorOut2, elevStateChangeOut2, backupOut2, ordersToElevatorsOut2,
+						ordersFromElevatorIn, elevStateChangeIn, backupIn, ordersToElevatorsIn)		
 
 
-	go bcast_ack.Transmitter(elevatorID, config.BCAST_PORT, AckNeeded, ordersFromElevatorOut, elevStateChangeOut, backupOut, ordersToElevatorsOut, AckSend)
+	go bcast_ack.Transmitter(elevatorID, config.BCAST_PORT, AckNeeded, ordersFromElevatorOut2, elevStateChangeOut2, backupOut2, ordersToElevatorsOut2, AckSend)
 	go bcast_ack.Receiver(elevatorID, config.BCAST_PORT, AckSend, ordersFromElevatorIn, elevStateChangeIn, backupIn, ordersToElevatorsIn, AckRecieved)
 
 	peerChan := make(chan peers.PeerUpdate)
