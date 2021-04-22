@@ -12,10 +12,12 @@ type HRAInput struct {
 	States    map[string]HRAElevState   	`json:"states"`
 }
 
-func toHRAInput(allOrders orders.OrderList, allStates map[string]em.Elevator) HRAInput {
+func toHRAInput(unassigned orders.OrderList, assigned orders.OrderList, allStates map[string]em.Elevator) HRAInput {
 	input := HRAInput{States: make(map[string]HRAElevState)}
 
-	hallOrders, CabOrders := OrderListToHRAFormat(allOrders)
+	hallOrders, _ := OrderListToHRAFormat(unassigned)
+
+	_, CabOrders := OrderListToHRAFormat(assigned)
 
 	input.HallOrder = hallOrders
 	for k, elev := range allStates {

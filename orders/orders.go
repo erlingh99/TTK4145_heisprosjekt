@@ -76,6 +76,7 @@ func NewOrder(be elevio.ButtonEvent, elevID string) Order {
 	
 	if be.Button == elevio.BT_Cab {		
 		o.Orderstate = ASSIGNED
+		o.AssignedElevator = elevID
 	}
 	return o
 }

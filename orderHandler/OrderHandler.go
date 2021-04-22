@@ -135,7 +135,11 @@ func Distributer(	ID 					string,
 				continue //do nothing, slave responsibility
 			}
 
+
+			fmt.Println(handler.AllOrders)
 			ordersToAssign, assignedorders, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
+			fmt.Println(ordersToAssign)
+			fmt.Println(assignedorders)
 
 			for _, elevID := range elevsWithProbs {
 				delete(handler.ElevatorStates, elevID)
@@ -159,18 +163,32 @@ func redistributeOrders(Unassigned 		orders.OrderList,
 						assigned 		orders.OrderList,
 						elevatorStates 	map[string]em.Elevator) (map[string][config.N_FLOORS][config.N_BUTTONS]bool, error) {
 
-	input := toHRAInput(Unassigned, elevatorStates)
-	sharedLights := input.HallOrder
+	input := toHRAInput(Unassigned, assigned, elevatorStates)
+
+	fmt.Println(input.States)
 
 	hallOrders, err := Assigner(input)
 	Unassigned.MarkAssignedElev(hallOrders)
 
 	
 	for _, order := range assigned {
-		if _, exist := hallOrders[order.AssignedElevator]; exist {
+		if order.Ordertype == orders.CAB {
+			continue
+		} else if _, exist := hallOrders[order.AssignedElevator]; exist {
 			temp := hallOrders[order.AssignedElevator]
 			temp[int(order.Destination)][int(order.Ordertype)] = true
 			hallOrders[order.AssignedElevator] = temp
+		}
+	}
+
+	sharedLights := [config.N_FLOORS][config.N_BUTTONS]bool {}
+	for _, orders := range hallOrders {
+		for f := range orders {
+			for i, b := range orders[f] {
+				if b {
+					sharedLights[f][i] = true
+				}
+			}
 		}
 	}
 
@@ -184,8 +202,7 @@ func redistributeOrders(Unassigned 		orders.OrderList,
 		elevOrders := utils.Mux(hallOrders[k], input.States[k].CabRequests)		
 		delegatedOrders[elev.ID] = elevOrders		
 	}
-
-	//want to send lights on a [4][3]bool chan
-	delegatedOrders["HallLights"] = utils.Mux(sharedLights, [config.N_FLOORS]bool{false, false, false, false}) 
+	
+	delegatedOrders["HallLights"] = sharedLights 
 	return delegatedOrders, nil
 }
