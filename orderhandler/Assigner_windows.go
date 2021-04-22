@@ -16,7 +16,7 @@ func Assigner(input HRAInput) (map[string][config.N_FLOORS][2]bool, error) {
 		fmt.Printf("json.Marshal error: %v\n", err)
 		return nil, err
 	}
-	retvals, err := exec.Command("./orderhandler/hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
+	retvals, err := exec.Command("./orderHandler/hall_request_assigner/hall_request_assigner.exe", "-i", string(jsonBytes)).Output()
 	if err != nil {
 		fmt.Printf("exec.Command error: %v\n", err)
 		return nil, err

@@ -35,12 +35,12 @@ func Distributer(	ID 					string,
 	
 					orderUpdate 		<-chan orders.Order,		//orders from elevators
 					elevatorStateUpdate <-chan em.Elevator,			//states from elevators
-					//broadcastRx			<-chan string,				//alivemsg from master
+					broadcastRx			<-chan string,				//alivemsg from master
 					checkpoint 			<-chan DistributerState,	//checkpoint from master
 					elevDisconnect 		<-chan string,				//error reaching elevator "elevDisconnect"
 
 					delegateOrders 		chan<- map[string][config.N_FLOORS][config.N_BUTTONS]bool,	//master delegates to elevators
-					//enableIpBroadcast	chan<- bool,				//enable broadcast of ip (only master broadcasts)
+					enableIpBroadcast	chan<- bool,				//enable broadcast of ip (only master broadcasts)
 					backupChan 			chan<- DistributerState) {	//send backup to slaves
 
 	handler := DistributerState{
@@ -50,14 +50,14 @@ func Distributer(	ID 					string,
 				ID:				ID,
 				Timestamp: 		time.Now()}
 
-	//masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
+	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
 	for {
-		//fmt.Println(handler.Mode)
+		fmt.Println(handler.Mode)
 		switch handler.Mode {
 		case SLAVE:
 			select {
-			/*
+			
 			case <-broadcastRx:
 				fmt.Println("alive message")
 				if !masterTimeoutTimer.Stop() {
@@ -68,8 +68,8 @@ func Distributer(	ID 					string,
 			case <-masterTimeoutTimer.C: //master has disconnected
 				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
-				//enableIpBroadcast <- true
-			*/
+				enableIpBroadcast <- true
+			
 			case cp := <-checkpoint:
 				if cp.Timestamp.After(handler.Timestamp) {
 					fmt.Println("checkpoint recieved")
@@ -81,8 +81,8 @@ func Distributer(	ID 					string,
 			case <-elevDisconnect:
 				fmt.Println("Error with connection to Master")
 				handler.Mode = MASTER
-				//masterTimeoutTimer.Stop()
-				//enableIpBroadcast <- true				
+				masterTimeoutTimer.Stop()
+				enableIpBroadcast <- true				
 		
 			case <-orderUpdate: //Do nothing, master responsibility
 			case <-elevatorStateUpdate:
@@ -105,7 +105,7 @@ func Distributer(	ID 					string,
 					//fmt.Println("elevatorState recieved: " + newState.ID)
 					handler.ElevatorStates[newState.ID] = newState
 				}
-			/*
+			
 			case msg := <-broadcastRx: //some other master exist
 				if msg == handler.ID {
 					continue
@@ -118,7 +118,7 @@ func Distributer(	ID 					string,
 				default:						
 				}									
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
-			*/
+			
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
 				delete(handler.ElevatorStates, elevID)	

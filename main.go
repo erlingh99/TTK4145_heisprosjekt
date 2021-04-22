@@ -38,27 +38,29 @@ func main() {
 	}
 	elevio.Init("localhost:15657", config.N_FLOORS)
 
-	ordersFromElevatorOut := make(chan orders.Order)
-	ordersFromElevatorIn := make(chan orders.Order)
+	ordersFromElevatorOut := make(chan orders.Order, 1)
+	ordersFromElevatorIn := make(chan orders.Order, 1)
 
 
-	elevStateChangeOut := make(chan em.Elevator)
-	elevStateChangeIn := make(chan em.Elevator)
+	elevStateChangeOut := make(chan em.Elevator, 1)
+	elevStateChangeIn := make(chan em.Elevator, 1)
 
 
-	backupOut := make(chan oh.DistributerState)
-	backupIn := make(chan oh.DistributerState)
+	backupOut := make(chan oh.DistributerState, 1)
+	backupIn := make(chan oh.DistributerState, 1)
 
-	ordersToElevatorsOut := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
-	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool)
+	ordersToElevatorsOut := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
+	ordersToElevatorsIn := make(chan map[string][config.N_FLOORS][config.N_BUTTONS]bool, 1)
 
-	//broadcastReciever := make(chan string) //obsolete
-	//enableIpBroadcast := make(chan bool)   //obsolete
-	elevDisconnect := make(chan string)
+	broadcastReciever := make(chan string, 1) //obsolete
+	enableIpBroadcast := make(chan bool, 1)   //obsolete
+
+
+	elevDisconnect := make(chan string, 1)
 
 
 	// Start orderHandler
-	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, /*broadcastReciever,*/ backupIn, elevDisconnect, ordersToElevatorsOut, /*enableIpBroadcast,*/ backupOut)
+	go oh.Distributer(elevatorID, ordersFromElevatorIn, elevStateChangeIn, broadcastReciever, backupIn, elevDisconnect, ordersToElevatorsOut, enableIpBroadcast, backupOut)
 
 	// Start elevatorManager
 	go em.ElevatorManager(elevatorID, ordersToElevatorsIn, ordersFromElevatorOut, elevStateChangeOut)
