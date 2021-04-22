@@ -136,7 +136,7 @@ func Distributer(	ID 					string,
 			}
 
 
-			fmt.Println("all orders:", handler.AllOrders)
+			fmt.Println("all      orders:", handler.AllOrders)
 			ordersToAssign, assignedorders, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
 			fmt.Println("toAssign orders:", ordersToAssign)
 			fmt.Println("assigned orders:", assignedorders)
