@@ -52,27 +52,31 @@ func Distributer(	ID 					string,
 
 	masterTimeoutTimer := time.NewTimer(config.IDLE_CONN_TIMEOUT)
 
-	for {		
+	for {
 		switch handler.Mode {
 		case SLAVE:
 			select {
 			
 			case <-broadcastRx:
-				fmt.Println("alive message")
+				// fmt.Println("alive message")
 				if !masterTimeoutTimer.Stop() {
-					<-masterTimeoutTimer.C
+					select{
+					case <-masterTimeoutTimer.C:
+					default:
+					}
 				}
 				masterTimeoutTimer.Reset(config.IDLE_CONN_TIMEOUT)
 			
 			case <-masterTimeoutTimer.C: //master has disconnected
 				fmt.Println("masterTimeout")
 				handler.Mode = MASTER
+				fmt.Println(handler.Mode)
 				enableIpBroadcast <- true
 				fmt.Println(handler.Mode)
 			
 			case cp := <-checkpoint:
 				if cp.Timestamp.After(handler.Timestamp) {
-					fmt.Println("checkpoint recieved")
+					// fmt.Println("checkpoint recieved")
 					handler.AllOrders = cp.AllOrders
 					handler.ElevatorStates = cp.ElevatorStates
 					handler.Timestamp = cp.Timestamp
@@ -81,6 +85,7 @@ func Distributer(	ID 					string,
 			case <-elevDisconnect:
 				fmt.Println("Error with connection to Master")
 				handler.Mode = MASTER
+				fmt.Println(handler.Mode)
 				masterTimeoutTimer.Stop()
 				enableIpBroadcast <- true
 				fmt.Println(handler.Mode)				
@@ -112,6 +117,7 @@ func Distributer(	ID 					string,
 					continue
 				}
 				handler.Mode = SLAVE
+				fmt.Println(handler.Mode)
 				enableIpBroadcast <- false
 				masterTimeoutTimer.Stop()
 				select {
