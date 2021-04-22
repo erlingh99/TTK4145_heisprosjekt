@@ -144,6 +144,13 @@ func Distributer(	ID 					string,
 			for _, elevID := range elevsWithProbs {
 				delete(handler.ElevatorStates, elevID)
 				fmt.Println("Elevator has problems, removed from elevs: " + elevID)
+				for _, order := range handler.AllOrders {
+					if order.AssignedElevator == elevID {
+						order.Orderstate = orders.UNASSIGNED
+						order.AssignedElevator = ""
+						order.Timestamp = time.Now()
+					}
+				}
 			}
 
 			delegatedOrders, err := redistributeOrders(ordersToAssign, assignedorders, handler.ElevatorStates)
