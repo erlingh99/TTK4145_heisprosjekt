@@ -87,6 +87,13 @@ func ElevatorManager(ID 		string,
 				_, cabLights := utils.Demux(newOrders[elevator.ID])				
 				hallLights, _ := utils.Demux(newOrders["HallLights"])
 				
+				//set lights
+				fsm_setCabLights(cabLights)
+				fsm_setHallLights(hallLights)
+
+				//start elevator
+				fsm_onOrdersRecieved()
+
 				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
 					fsm_openDoor()
 					o := orders.Order{
@@ -99,12 +106,7 @@ func ElevatorManager(ID 		string,
 					fmt.Printf("order complete %v\n", o.Destination)
 				}
 				
-				//set lights
-				fsm_setCabLights(cabLights)
-				fsm_setHallLights(hallLights)
-
-				//start elevator
-				fsm_onOrdersRecieved()
+				
 				
 			
 			//When the stopbutton is pressed, this is not implemented
