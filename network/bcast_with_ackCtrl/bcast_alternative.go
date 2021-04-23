@@ -107,8 +107,8 @@ func Transmitter(id string, port int, AckNeeded chan<- AcknowledgeCtrl, chans ..
 											ID:			string(buf), 
 											SendTime: 	time.Now(),
 											SendNum: 	1,
-											AcksRecvd:	[]string{id}}
-		}
+											AcksRecvd:	make([]string, 1)}
+		}		
 	}
 }
 

@@ -137,9 +137,6 @@ func main() {
 			}
 		
 		case ack := <-AckRecieved:
-			if ack.ElevID == elevatorID {
-				continue //recieved acks we sent ourselves
-			}
 			waitingForAcks.AckRecieved(&ack)			
 
 		case ack := <-AckNeeded:
@@ -154,7 +151,7 @@ func main() {
 		for _, v := range missingAcks {
 			peerIDs = utils.Remove(peerIDs, v)
 			elevDisconnect <- v					
-			fmt.Println("peer timedout" + v)							
+			fmt.Println("missing acks from: " + v + "\n ^has been removed")							
 		}
 	}	
 }
@@ -176,3 +173,12 @@ func imMasterAlertBcast(port int, enableBcast <-chan bool, id string) {
 		}
 	}
 }
+
+//possibilities
+
+//unassign all orders belonging to elevator when it disconnects, instead of waiting for timeouts on orders?
+//only clear orders that are assigned to elevator on floor, so elevators wont stop between floors (unless timeout)?
+
+//are checkpoint sent right?? allOrders are pointers, might not work??
+
+//ack our own messages (packet loss) [done]
