@@ -15,7 +15,9 @@ func (ol *OrderList) ClearFinishedOrders() {
 	}
 }
 
-func (ol *OrderList) OrderUpdate(o *Order) {	
+func (ol *OrderList) OrderUpdate(o *Order) {
+	
+	fmt.Println(*o)
 
 	if o.Orderstate == COMPLETED { //some order has been completed
 		ol.clearOrdersAtFloor(o.Destination, o.OriginElevator)

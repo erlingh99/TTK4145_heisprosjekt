@@ -46,6 +46,7 @@ func (e Elevator) OrdersFromElevRequests() orders.OrderList{
 									Timestamp: 		time.Now()}
 				if j == 2 {
 					o.Orderstate = orders.ASSIGNED
+					o.AssignedElevator = e.ID
 				}
 
 				subList = append(subList, &o)
