@@ -146,6 +146,10 @@ func Distributer(	ID 					string,
 			ordersToAssign, assignedorders, elevsWithProbs := handler.AllOrders.AllUnassignedAndTimedOut()
 			fmt.Println("toAssign orders:", ordersToAssign)
 			fmt.Println("assigned orders:", assignedorders)
+			for _, o := range assignedorders {
+				fmt.Println(*o)
+			}
+			
 
 			for _, elevID := range elevsWithProbs {
 				delete(handler.ElevatorStates, elevID)
@@ -154,8 +158,8 @@ func Distributer(	ID 					string,
 					if order.AssignedElevator == elevID {
 						if order.Ordertype != orders.CAB {
 							order.Orderstate = orders.UNASSIGNED
+							order.AssignedElevator = ""
 						}
-						order.AssignedElevator = ""
 						order.Timestamp = time.Now()
 					}
 				}

@@ -1,6 +1,7 @@
 package orders
 
 import "elevatorproject/config"
+import "fmt"
 
 type OrderList []*Order
 
@@ -37,10 +38,11 @@ func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
 	}
 }
 
-func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
-	for _, o := range ol {
+func (ol *OrderList)clearOrdersAtFloor(f Floor, elevID string) {
+	for _, o := range *ol {
 		if o.Destination == f && o.AssignedElevator == elevID {
-			o.Orderstate = COMPLETED		
+			o.Orderstate = COMPLETED
+			fmt.Println("order done:", *o)	
 		} // } else if o.Destination == f && o.Ordertype != CAB && o.AssignedElevator == elevID {
 		// 	o.Orderstate = COMPLETED						
 		// }		
@@ -62,8 +64,9 @@ func (ol OrderList) AllUnassignedAndTimedOut() (OrderList, OrderList, []string) 
 		}
 
 		if b {
-			timedOutElevs = append(timedOutElevs, o.AssignedElevator)
+			
 			if o.Ordertype != CAB {
+				timedOutElevs = append(timedOutElevs, o.AssignedElevator)
 				o.Orderstate = UNASSIGNED
 			}
 			
