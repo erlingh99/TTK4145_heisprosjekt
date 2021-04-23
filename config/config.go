@@ -18,7 +18,7 @@ const ORDER_MAX_EXECUTION_TIME = 15 * time.Second
 //elev consts
 const DOOR_TIMEOUT = 3 * time.Second
 const POLLRATE = 25 * time.Millisecond
-const ELEV_SHARE_STATE_INTERVAL = 2 * time.Second
+const ELEV_SHARE_STATE_INTERVAL = 300 * time.Millisecond
 
 //bcast ports
 const PEER_PORT =  20005

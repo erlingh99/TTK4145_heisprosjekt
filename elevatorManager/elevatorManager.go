@@ -120,7 +120,9 @@ func ElevatorManager(ID 		string,
 			
 			// Sharing the elevator state with the master every 2 sec
 			case <- shareStateTicker.C:
-				shareState <- elevator				
+				if elevator.Floor != -1 {
+					shareState <- elevator
+				}			
         }
 		elevator.LastChange = time.Now()				
 	}
