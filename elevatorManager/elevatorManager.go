@@ -89,18 +89,19 @@ func ElevatorManager(ID 		string,
 
 				//check for recieved order on the floor we are at
 				// If there is an order the door is opened and the orders is marked as colmpleted
-				if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
-					fsm_openDoor()
-					o := orders.Order{
-						Orderstate:  	orders.COMPLETED,
-						Ordertype:   	orders.CAB,
-						Destination: 	orders.Floor(elevator.Floor),
-						Timestamp:   	time.Now(),
-						OriginElevator:	elevator.ID}
-					orderOut <- o
-					fmt.Printf("order complete %v\n", o.Destination)
-				}		
-					
+				if elevator.Floor != -1 {
+					if (elevator.Requests[elevator.Floor][0] || elevator.Requests[elevator.Floor][1]) && elevator.Behaviour != EB_Moving {
+						fsm_openDoor()
+						o := orders.Order{
+							Orderstate:  	orders.COMPLETED,
+							Ordertype:   	orders.CAB,
+							Destination: 	orders.Floor(elevator.Floor),
+							Timestamp:   	time.Now(),
+							OriginElevator:	elevator.ID}
+						orderOut <- o
+						fmt.Printf("order complete %v\n", o.Destination)
+					}		
+				}
 				//set lights
 				fsm_setCabLights(cabLights)
 				fsm_setHallLights(hallLights)
