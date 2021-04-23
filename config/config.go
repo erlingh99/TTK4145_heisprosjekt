@@ -9,8 +9,8 @@ const N_FLOORS = 4
 const N_BUTTONS = 3
 
 //ack consts
-const MAX_RESENDS = 3
-const RESEND_RATE = 300 * time.Millisecond
+const MAX_RESENDS = 5
+const RESEND_RATE = 200 * time.Millisecond
 
 //order consts
 const ORDER_MAX_EXECUTION_TIME = 15 * time.Second

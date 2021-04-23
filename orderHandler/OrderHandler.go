@@ -130,6 +130,12 @@ func Distributer(	ID 					string,
 			case elevID := <-elevDisconnect:
 				fmt.Println("Connection error with slave " + elevID)
 				delete(handler.ElevatorStates, elevID)	
+				for _, order := range handler.AllOrders {
+					if order.Orderstate == orders.ASSIGNED && order.AssignedElevator == elevID && order.Ordertype != orders.CAB {
+						order.Orderstate = orders.UNASSIGNED
+						order.AssignedElevator = ""
+					}
+				}
 									
 			case <-checkpoint:
 				continue //do nothing, slave responsibility

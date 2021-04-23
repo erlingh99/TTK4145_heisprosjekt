@@ -176,9 +176,10 @@ func imMasterAlertBcast(port int, enableBcast <-chan bool, id string) {
 
 //possibilities
 
-//unassign all orders belonging to elevator when it disconnects, instead of waiting for timeouts on orders?
-//only clear orders that are assigned to elevator on floor, so elevators wont stop between floors (unless timeout)?
+//unassign all orders belonging to elevator when it disconnects, instead of waiting for timeouts on orders? [done]
 
-//are checkpoint sent right?? allOrders are pointers, might not work??
+//only clear orders that are assigned to elevator on floor, so elevators wont stop between floors (unless timeout)? [done]
+
+//are checkpoint sent right?? allOrders are pointers, might not work??  [tror den fungerer]
 
 //ack our own messages (packet loss) [done]

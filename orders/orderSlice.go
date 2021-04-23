@@ -39,11 +39,11 @@ func (ol *OrderList) OrderUpdateList(ol2 OrderList) {
 
 func (ol OrderList)clearOrdersAtFloor(f Floor, elevID string) {
 	for _, o := range ol {
-		if o.Destination == f && o.Ordertype == CAB && o.OriginElevator == elevID {
+		if o.Destination == f && o.AssignedElevator == elevID {
 			o.Orderstate = COMPLETED		
-		} else if o.Destination == f && o.Ordertype != CAB {
-			o.Orderstate = COMPLETED						
-		}		
+		} // } else if o.Destination == f && o.Ordertype != CAB && o.AssignedElevator == elevID {
+		// 	o.Orderstate = COMPLETED						
+		// }		
 	}
 }
 
