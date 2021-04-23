@@ -19,20 +19,20 @@ The code is organized in several Go packages, together forming one Go module cal
 - [config](config)
     - Contains general constants that defines configuration specific information about the system
 - [elevio](driver-go/elevio)
-    - Go driver for physical elevator
+    - Go driver for physical elevator. Delivered code, see: https://github.com/TTK4145/driver-go
 - [elevatorManager](elevatorManager)
     - The elevator manager module
 - network
     - [bcast](network/bcast)
-        - Utilities for simple listening and broadcasting with UDP
+        - Utilities for simple listening and broadcasting with UDP. Delivered code, see: https://github.com/TTK4145/Network-go
     - [bcast_with_ackCtrl](network/bcast_with_ackCtrl)
         - Utilities for connecting go channels over network connections using UDP broadcast with acknowledgements and resends
     - [conn](network/conn)
-        - Gives UDP broadcasting a similar interface across operating systems
+        - Gives UDP broadcasting a similar interface across operating systems. Delivered code, see: https://github.com/TTK4145/Network-go
     - [localip](network/localip)
-        - Utility for finding a elevators local IP address
+        - Utility for finding a elevators local IP address. Delivered code, see: https://github.com/TTK4145/Network-go. Small changes
     - [peers](network/peers)
-        - Utilities for staying in touch with units across network and get notified when a connection breaks
+        - Utilities for staying in touch with units across network and get notified when a connection breaks. Delivered code, see: https://github.com/TTK4145/Network-go
     - [switcher](network/switcher)
         - Utility for routing traffic through Go channels differently based on network connectivity
 - [orderHandler](orderHandler)
